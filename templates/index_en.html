@@ -1,0 +1,68 @@
+<!-- templates/index_en.html -->
+{% extends "base_en.html" %}
+
+{% block title %}Welcome - {{ config.APP_NAME_EN }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 text-center">
+        <div class="card shadow fade-in">
+            <div class="card-body py-5">
+                <h1 class="display-4 text-primary mb-4">
+                    <i class="fas fa-graduation-cap"></i> {{ config.APP_NAME_EN }}
+                </h1>
+                <p class="lead mb-4">
+                    An efficient and intuitive student grade management and analysis platform
+                </p>
+                <hr class="my-4">
+                <p>Easily manage student information, enter grades, generate statistical charts, and support data export.</p>
+                
+                <div class="mt-5">
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('main.dashboard_en') }}" class="btn btn-primary btn-lg px-4">
+                            <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+                        </a>
+                    {% else %}
+                        <div class="d-grid gap-2 d-md-block">
+                            <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg px-4 me-2">
+                                <i class="fas fa-sign-in-alt"></i> Login
+                            </a>
+                            <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary btn-lg px-4">
+                                <i class="fas fa-user-plus"></i> Register New Account
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="row mt-5 text-start">
+                    <div class="col-md-4 mb-3">
+                        <h5><i class="fas fa-user-check text-success"></i> Features</h5>
+                        <ul class="list-unstyled">
+                            <li>• Student Information Management</li>
+                            <li>• Grade Entry and Query</li>
+                            <li>• Data Statistics and Analysis</li>
+                            <li>• Report Export</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <h5><i class="fas fa-shield-alt text-warning"></i> Secure and Reliable</h5>
+                        <ul class="list-unstyled">
+                            <li>• User Permission Management</li>
+                            <li>• Data Encryption Storage</li>
+                            <li>• Operation Logging</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <h5><i class="fas fa-chart-line text-info"></i> Intelligent Analysis</h5>
+                        <ul class="list-unstyled">
+                            <li>• Grade Distribution Charts</li>
+                            <li>• Trend Analysis</li>
+                            <li>• Custom Reports</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

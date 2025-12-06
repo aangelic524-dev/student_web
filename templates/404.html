@@ -1,0 +1,60 @@
+<!-- templates/404.html -->
+{% extends "base.html" %}
+
+{% block title %}页面未找到 - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container text-center py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <!-- 错误图标 -->
+                    <div class="error-icon mb-4">
+                        <i class="fas fa-exclamation-triangle fa-5x text-warning"></i>
+                    </div>
+                    
+                    <!-- 错误代码和标题 -->
+                    <h1 class="display-1 fw-bold text-muted">404</h1>
+                    <h2 class="h4 mb-4">哎呀！页面走丢了</h2>
+                    
+                    <!-- 错误描述 -->
+                    <p class="lead mb-4">
+                        您访问的页面可能已被移除、名称更改或者暂时不可用。
+                    </p>
+                    
+                    <!-- 可能的原因和建议 -->
+                    <div class="card mb-4 border-info">
+                        <div class="card-body text-start">
+                            <h5 class="card-title"><i class="fas fa-lightbulb"></i> 您可以尝试：</h5>
+                            <ul class="mb-0">
+                                <li>检查网址是否正确</li>
+                                <li>使用导航菜单或搜索功能</li>
+                                <li>返回上一页或访问我们的首页</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- 操作按钮 -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-center">
+                        <a href="{{ url_for('main.index') }}" class="btn btn-primary btn-lg px-4">
+                            <i class="fas fa-home"></i> 返回首页
+                        </a>
+                        <button onclick="window.history.back()" class="btn btn-outline-secondary btn-lg px-4">
+                            <i class="fas fa-arrow-left"></i> 返回上一页
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 额外帮助信息 -->
+            <div class="mt-4 text-muted">
+                <p class="small">
+                    如需帮助，请联系系统管理员或查看 
+                    <a href="{{ url_for('main.index') }}">帮助中心</a>。
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

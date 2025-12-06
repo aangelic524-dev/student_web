@@ -1,0 +1,540 @@
+<!-- templates/student_detail.html -->
+{% extends "base.html" %}
+
+{% block title %}学生详情 - {{ student.name }} - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 学生基本信息卡片 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="mb-0">
+                            <i class="fas fa-user-graduate me-2"></i>{{ student.name }}
+                            <small class="fs-6 opacity-75">({{ student.student_id }})</small>
+                        </h4>
+                    </div>
+                    <div class="btn-group">
+                        <a href="{{ url_for('main.edit_student', student_id=student.id) }}" 
+                           class="btn btn-warning btn-sm">
+                            <i class="fas fa-edit me-1"></i>修改信息
+                        </a>
+                        <a href="{{ url_for('main.add_grade', student_id=student.id) }}" 
+                           class="btn btn-light btn-sm">
+                            <i class="fas fa-plus-circle me-1"></i>添加成绩
+                        </a>
+                        <a href="{{ url_for('main.student_list') }}" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i>返回列表
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- 左侧：基本信息 -->
+                        <div class="col-md-6">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-id-card me-2"></i>基本信息
+                            </h6>
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <label class="text-muted small">学号</label>
+                                    <p class="fw-bold">{{ student.student_id }}</p>
+                                </div>
+                                <div class="col-6">
+                                    <label class="text-muted small">姓名</label>
+                                    <p class="fw-bold">{{ student.name }}</p>
+                                </div>
+                                <div class="col-6">
+                                    <label class="text-muted small">性别</label>
+                                    <p>
+                                        {% if student.gender == '男' %}
+                                            <span class="badge bg-info">{{ student.gender }}</span>
+                                        {% elif student.gender == '女' %}
+                                            <span class="badge bg-pink">{{ student.gender }}</span>
+                                        {% else %}
+                                            <span class="text-muted">未设置</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="col-6">
+                                    <label class="text-muted small">出生日期</label>
+                                    <p>
+                                        {% if student.birth_date %}
+                                            {{ student.birth_date.strftime('%Y年%m月%d日') }}
+                                        {% else %}
+                                            <span class="text-muted">未设置</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="col-6">
+                                    <label class="text-muted small">年级</label>
+                                    <p>{{ student.grade_level or '<span class="text-muted">未设置</span>'|safe }}</p>
+                                </div>
+                                <div class="col-6">
+                                    <label class="text-muted small">院系</label>
+                                    <p>{{ student.department or '<span class="text-muted">未设置</span>'|safe }}</p>
+                                </div>
+                                <div class="col-6">
+                                    <label class="text-muted small">班级</label>
+                                    <p>{{ student.class_name or '<span class="text-muted">未设置</span>'|safe }}</p>
+                                </div>
+                                <div class="col-6">
+                                    <label class="text-muted small">专业</label>
+                                    <p>{{ student.major or '<span class="text-muted">未设置</span>'|safe }}</p>
+                                </div>
+                                <div class="col-6">
+                                    <label class="text-muted small">职位</label>
+                                    <p>{{ student.position or '<span class="text-muted">未设置</span>'|safe }}</p>
+                                </div>
+                                <div class="col-12">
+                                    <label class="text-muted small">入学日期</label>
+                                    <p>
+                                        {% if student.enrollment_date %}
+                                            {{ student.enrollment_date.strftime('%Y年%m月%d日') }}
+                                            <small class="text-muted">
+                                                ({{ ((now.date() - student.enrollment_date).days // 365) }}年)
+                                            </small>
+                                        {% else %}
+                                            <span class="text-muted">未设置</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 右侧：联系方式和统计 -->
+                        <div class="col-md-6">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-address-book me-2"></i>联系信息
+                            </h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-12">
+                                    <label class="text-muted small">联系电话</label>
+                                    <p>
+                                        {% if student.phone %}
+                                            <i class="fas fa-phone text-success me-2"></i>
+                                            {{ student.phone }}
+                                        {% else %}
+                                            <span class="text-muted">未设置</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="col-12">
+                                    <label class="text-muted small">电子邮箱</label>
+                                    <p>
+                                        {% if student.email %}
+                                            <i class="fas fa-envelope text-primary me-2"></i>
+                                            {{ student.email }}
+                                        {% else %}
+                                            <span class="text-muted">未设置</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="col-12">
+                                    <label class="text-muted small">联系地址</label>
+                                    <p class="mb-0">
+                                        {% if student.address %}
+                                            <i class="fas fa-map-marker-alt text-warning me-2"></i>
+                                            {{ student.address }}
+                                        {% else %}
+                                            <span class="text-muted">未设置</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <!-- 成绩统计 -->
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-chart-line me-2"></i>成绩统计
+                            </h6>
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <div class="border rounded p-2">
+                                        <div class="fw-bold text-primary">
+                                            {{ grades|length }}
+                                        </div>
+                                        <small class="text-muted">课程数</small>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="border rounded p-2">
+                                        <div class="fw-bold text-success">
+                                            {% if avg_score %}
+                                                {{ "%.2f"|format(avg_score) }}
+                                            {% else %}
+                                                0.00
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted">平均分</small>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="border rounded p-2">
+                                        <div class="fw-bold text-info">
+                                            {% if avg_score %}
+                                                {% if avg_score >= 90 %}
+                                                    4.0
+                                                {% elif avg_score >= 80 %}
+                                                    3.0
+                                                {% elif avg_score >= 70 %}
+                                                    2.0
+                                                {% elif avg_score >= 60 %}
+                                                    1.0
+                                                {% else %}
+                                                    0.0
+                                                {% endif %}
+                                            {% else %}
+                                                0.0
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted">平均绩点</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 元信息 -->
+                    <div class="row mt-4 pt-3 border-top">
+                        <div class="col-md-6">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar-plus me-1"></i>
+                                创建时间：{{ student.created_at.strftime('%Y-%m-%d %H:%M') }}
+                            </small>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar-check me-1"></i>
+                                最后更新：{{ student.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 成绩记录表格 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list-alt me-2"></i>成绩记录
+                        <span class="badge bg-light text-success ms-2">{{ grades|length }} 门课程</span>
+                    </h5>
+                    <div>
+                        <a href="{{ url_for('main.export_grades') }}" class="btn btn-light btn-sm">
+                            <i class="fas fa-file-export me-1"></i>导出成绩
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="card-body p-0">
+                    {% if grades %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>课程代码</th>
+                                    <th>课程名称</th>
+                                    <th class="text-center">学分</th>
+                                    <th class="text-center">成绩</th>
+                                    <th class="text-center">等级</th>
+                                    <th class="text-center">绩点</th>
+                                    <th>考试日期</th>
+                                    <th>备注</th>
+                                    <th class="text-end">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for grade in grades %}
+                                <tr>
+                                    <td>
+                                        <code>{{ grade.course.course_code }}</code>
+                                    </td>
+                                    <td>
+                                        <strong>{{ grade.course.course_name }}</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        {{ grade.course.credit }}
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="fw-bold 
+                                            {% if grade.score >= 90 %}text-success
+                                            {% elif grade.score >= 80 %}text-primary
+                                            {% elif grade.score >= 70 %}text-info
+                                            {% elif grade.score >= 60 %}text-warning
+                                            {% else %}text-danger{% endif %}">
+                                            {{ grade.score }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% set grade_level = grade.grade_level %}
+                                        {% if grade_level == 'A' %}
+                                            <span class="badge bg-success">优秀 (A)</span>
+                                        {% elif grade_level == 'B' %}
+                                            <span class="badge bg-primary">良好 (B)</span>
+                                        {% elif grade_level == 'C' %}
+                                            <span class="badge bg-info">中等 (C)</span>
+                                        {% elif grade_level == 'D' %}
+                                            <span class="badge bg-warning">及格 (D)</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">不及格 (F)</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="fw-bold">{{ grade.grade_point }}</span>
+                                    </td>
+                                    <td>
+                                        {% if grade.exam_date %}
+                                            {{ grade.exam_date.strftime('%Y-%m-%d') }}
+                                        {% else %}
+                                            <span class="text-muted">未设置</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if grade.note %}
+                                            <small class="text-muted">{{ grade.note[:20] }}{% if grade.note|length > 20 %}...{% endif %}</small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <!-- 在 student_detail.html 中修改这部分代码 -->
+                                        <td class="text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('main.edit_grade', grade_id=grade.id) }}" 
+                                                class="btn btn-outline-warning" title="编辑成绩">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form method="POST" action="{{ url_for('main.delete_grade', grade_id=grade.id) }}" 
+                                                style="display: inline;" onsubmit="return confirm('确定要删除这条成绩记录吗？');">
+                                                <button type="submit" class="btn btn-outline-danger" title="删除成绩">
+                                                <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 成绩统计摘要 -->
+                    <div class="card-footer">
+                        <div class="row text-center">
+                            <div class="col-md-3 col-6 mb-2">
+                                <div class="border rounded p-2">
+                                    <div class="fw-bold text-success">最高分</div>
+                                    <div>{{ grades|map(attribute='score')|max }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 mb-2">
+                                <div class="border rounded p-2">
+                                    <div class="fw-bold text-primary">最低分</div>
+                                    <div>{{ grades|map(attribute='score')|min }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 mb-2">
+                                <div class="border rounded p-2">
+                                    <div class="fw-bold text-info">及格课程</div>
+                                    <div>{{ grades|selectattr('score', '>=', 60)|list|length }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 mb-2">
+                                <div class="border rounded p-2">
+                                    <div class="fw-bold text-warning">总学分</div>
+                                    <div>{{ grades|map(attribute='course.credit')|sum }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <!-- 无成绩时的提示 -->
+                    <div class="text-center py-5">
+                        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted mb-3">暂无成绩记录</h5>
+                        <p class="text-muted small mb-4">该学生尚未添加任何课程成绩</p>
+                        <a href="{{ url_for('main.add_grade', student_id=student.id) }}" 
+                           class="btn btn-primary">
+                            <i class="fas fa-plus-circle me-2"></i>添加第一门课程成绩
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 操作指南 -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-body py-3">
+                    <h6 class="card-title text-info mb-2">
+                        <i class="fas fa-lightbulb me-2"></i>操作指南
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <i class="fas fa-plus-circle text-success me-2"></i>
+                            <strong>添加成绩：</strong>点击顶部"添加成绩"按钮
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <i class="fas fa-edit text-warning me-2"></i>
+                            <strong>编辑成绩：</strong>点击成绩行右侧的编辑图标
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <i class="fas fa-chart-bar text-primary me-2"></i>
+                            <strong>查看统计：</strong>点击课程名称查看详细统计
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 成绩详情模态框 -->
+<div class="modal fade" id="gradeDetailModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">成绩详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="gradeDetailContent">
+                <!-- 内容将通过JavaScript动态加载 -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>确认删除
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>您确定要删除 <strong id="deleteCourseName"></strong> 的成绩记录吗？</p>
+                <p class="text-danger small">
+                    <i class="fas fa-exclamation-circle me-1"></i>
+                    此操作不可恢复，请谨慎操作！
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">确认删除</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentGradeId = null;
+
+// 显示成绩详情
+function showGradeDetail(gradeId) {
+    // 这里可以添加AJAX请求获取详细信息的逻辑
+    const content = `
+        <div class="text-center">
+            <div class="mb-3">
+                <i class="fas fa-clipboard-check fa-3x text-primary"></i>
+            </div>
+            <p>成绩详情功能开发中...</p>
+            <p class="text-muted small">将显示成绩的完整信息、历史记录等</p>
+        </div>
+    `;
+    document.getElementById('gradeDetailContent').innerHTML = content;
+    const modal = new bootstrap.Modal(document.getElementById('gradeDetailModal'));
+    modal.show();
+}
+
+// 编辑成绩（跳转到编辑页面）
+function editGrade(gradeId) {
+    // 这里可以跳转到编辑页面，暂时先提示
+    alert('成绩编辑功能开发中...\n将跳转到成绩编辑页面');
+    // window.location.href = '/grades/' + gradeId + '/edit';
+}
+
+// 删除成绩确认
+function deleteGrade(gradeId, courseName) {
+    currentGradeId = gradeId;
+    document.getElementById('deleteCourseName').textContent = courseName;
+    const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    modal.show();
+}
+
+// 确认删除
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+    if (currentGradeId) {
+        // 这里可以添加AJAX删除请求
+        console.log('删除成绩 ID:', currentGradeId);
+        alert('成绩删除功能开发中...\n将删除ID为 ' + currentGradeId + ' 的成绩');
+        
+        // 关闭模态框
+        const modal = bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal'));
+        modal.hide();
+        
+        // 在实际应用中，这里应该发送AJAX请求并刷新页面
+        // fetch('/grades/' + currentGradeId, { method: 'DELETE' })
+        //   .then(response => response.json())
+        //   .then(data => {
+        //       if (data.success) {
+        //           location.reload();
+        //       }
+        //   });
+    }
+});
+
+// 页面加载完成后的初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 高亮当前学生的行（如果有）
+    const studentId = "{{ student.id }}";
+    console.log('当前学生ID:', studentId);
+    
+    // 添加打印功能
+    const printBtn = document.createElement('button');
+    printBtn.className = 'btn btn-outline-secondary btn-sm ms-2';
+    printBtn.innerHTML = '<i class="fas fa-print me-1"></i>打印详情';
+    printBtn.onclick = function() {
+        window.print();
+    };
+    document.querySelector('.card-header .btn-group').appendChild(printBtn);
+});
+</script>
+
+<style>
+/* 自定义样式 */
+.badge.bg-pink {
+    background-color: #e83e8c !important;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+@media print {
+    .no-print, .btn-group, .modal, .card-header .btn {
+        display: none !important;
+    }
+    
+    .card {
+        border: 1px solid #dee2e6 !important;
+        box-shadow: none !important;
+    }
+}
+</style>
+{% endblock %}

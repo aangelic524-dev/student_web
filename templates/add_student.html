@@ -1,0 +1,203 @@
+<!-- templates/add_student.html -->
+{% extends "base.html" %}
+
+{% block title %}添加学生 - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- 页面标题和导航 -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="h4 mb-0">
+                    <i class="fas fa-user-plus text-primary me-2"></i>添加新学生
+                </h2>
+                <a href="{{ url_for('main.student_list') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-arrow-left me-1"></i>返回学生列表
+                </a>
+            </div>
+
+            <!-- 表单卡片 -->
+            <div class="card shadow">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">学生基本信息</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="" novalidate>
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row">
+                            <!-- 学号和姓名 -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ form.student_id.label.text }} <span class="text-danger">*</span></label>
+                                {{ form.student_id(class="form-control", placeholder="如: 20230001") }}
+                                {% if form.student_id.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.student_id.errors %}
+                                    <i class="fas fa-exclamation-circle me-1"></i>{{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">学生的唯一标识符</div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ form.name.label.text }} <span class="text-danger">*</span></label>
+                                {{ form.name(class="form-control", placeholder="请输入学生姓名") }}
+                                {% if form.name.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.name.errors %}
+                                    <i class="fas fa-exclamation-circle me-1"></i>{{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- 性别和出生日期 -->
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">{{ form.gender.label.text }}</label>
+                                {{ form.gender(class="form-select") }}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ form.birth_date.label.text }}</label>
+                                {{ form.birth_date(class="form-control", type="date") }}
+                            </div>
+                            
+                            <div class="col-md-5 mb-3">
+                                <label class="form-label">{{ form.enrollment_date.label.text }}</label>
+                                {{ form.enrollment_date(class="form-control", type="date") }}
+                                <div class="form-text">学生入学日期</div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- 年级和院系 -->
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ form.grade_level.label.text }}</label>
+                                {{ form.grade_level(class="form-control", placeholder="如: 2025") }}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ form.department.label.text }}</label>
+                                {{ form.department(class="form-control", placeholder="如: 信息工程学院") }}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ form.position.label.text }}</label>
+                                {{ form.position(class="form-control", placeholder="如: 班长、学习委员") }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <!-- 班级和专业 -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ form.class_name.label.text }}</label>
+                                {{ form.class_name(class="form-control", placeholder="如: 计算机科学与技术1班") }}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ form.major.label.text }}</label>
+                                {{ form.major(class="form-control", placeholder="如: 计算机科学与技术") }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- 联系方式 -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ form.phone.label.text }}</label>
+                                {{ form.phone(class="form-control", placeholder="如: 13800138000") }}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ form.email.label.text }}</label>
+                                {{ form.email(class="form-control", placeholder="如: student@example.com") }}
+                            </div>
+                        </div>
+
+                        <!-- 地址 -->
+                        <div class="mb-4">
+                            <label class="form-label">{{ form.address.label.text }}</label>
+                            {{ form.address(class="form-control", rows="3", placeholder="请输入详细地址") }}
+                        </div>
+
+                        <!-- 表单操作按钮 -->
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                            <div>
+                                <span class="text-muted small">带 <span class="text-danger">*</span> 的字段为必填项</span>
+                            </div>
+                            <div>
+                                <button type="reset" class="btn btn-outline-secondary me-2">
+                                    <i class="fas fa-redo me-1"></i>重置
+                                </button>
+                                {{ form.submit(class="btn btn-primary") }}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 填写提示 -->
+            <div class="card mt-4 border-info">
+                <div class="card-body py-3">
+                    <h6 class="card-title text-info mb-2">
+                        <i class="fas fa-lightbulb me-2"></i>填写提示
+                    </h6>
+                    <ul class="mb-0 small">
+                        <li>学号是学生的唯一标识，请确保不与其他学生重复</li>
+                        <li>姓名应填写真实姓名，方便后续管理</li>
+                        <li>联系方式填写正确，便于紧急情况下联系</li>
+                        <li>地址信息尽量详细，有助于学生档案管理</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 设置出生日期和入学日期的默认值为今天（便于填写）
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // 如果出生日期字段为空，设置为18年前的今天
+    const birthDateField = document.getElementById('{{ form.birth_date.id }}');
+    if (birthDateField && !birthDateField.value) {
+        const eighteenYearsAgo = new Date();
+        eighteenYearsAgo.setFullYear(eighteenYearsAgo.getFullYear() - 18);
+        birthDateField.value = eighteenYearsAgo.toISOString().split('T')[0];
+    }
+    
+    // 如果入学日期字段为空，设置为今天
+    const enrollmentDateField = document.getElementById('{{ form.enrollment_date.id }}');
+    if (enrollmentDateField && !enrollmentDateField.value) {
+        enrollmentDateField.value = today;
+    }
+    
+    // 表单验证增强
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(event) {
+        let isValid = true;
+        const requiredFields = form.querySelectorAll('[required]');
+        
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                isValid = false;
+                field.classList.add('is-invalid');
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            event.preventDefault();
+            alert('请填写所有必填字段（标有 * 的字段）');
+        }
+    });
+});
+</script>
+{% endblock %}

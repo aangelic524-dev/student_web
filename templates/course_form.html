@@ -1,0 +1,465 @@
+<!-- templates/course_form.html -->
+{% extends "base.html" %}
+
+{% block title %}{{ '编辑' if course else '添加' }}课程 - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- 页面标题和导航 -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="h4 mb-0">
+                        <i class="fas fa-book text-primary me-2"></i>
+                        {{ '编辑课程' if course else '添加新课程' }}
+                    </h2>
+                    {% if course %}
+                    <p class="text-muted small mb-0">
+                        修改课程 <strong>{{ course.course_name }}</strong> 的信息
+                    </p>
+                    {% else %}
+                    <p class="text-muted small mb-0">为系统添加新的课程信息</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <a href="{{ url_for('main.course_list') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i>返回课程列表
+                    </a>
+                </div>
+            </div>
+
+            <!-- 课程信息卡片 -->
+            {% if course %}
+            <div class="card border-info mb-4">
+                <div class="card-body py-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" 
+                                         style="width: 50px; height: 50px;">
+                                        <i class="fas fa-book-open"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">{{ course.course_name }}</h6>
+                                    <div class="text-muted small">
+                                        <span class="me-3">
+                                            <i class="fas fa-code me-1"></i>{{ course.course_code }}
+                                        </span>
+                                        <span>
+                                            <i class="fas fa-star me-1"></i>{{ course.credit }} 学分
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <div class="text-muted small">
+                                创建时间：{{ course.created_at.strftime('%Y-%m-%d') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 课程表单 -->
+            <div class="card shadow">
+                <div class="card-header {{ 'bg-warning text-white' if course else 'bg-primary text-white' }}">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>
+                        {{ '编辑课程信息' if course else '填写课程信息' }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="" novalidate>
+                        {{ form.hidden_tag() }}
+                        
+                        <!-- 课程代码和名称 -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label">
+                                    {{ form.course_id.label.text }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.course_id(class="form-control", 
+                                                  placeholder="如：COURSE001", 
+                                                  readonly=course is not none) }}
+                                {% if form.course_id.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.course_id.errors %}
+                                    <i class="fas fa-exclamation-circle me-1"></i>{{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">用户可自定义的课程ID，创建后不可修改</div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label">
+                                    {{ form.course_code.label.text }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.course_code(class="form-control", 
+                                                  placeholder="如：MATH101", 
+                                                  readonly=course is not none) }}
+                                {% if form.course_code.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.course_code.errors %}
+                                    <i class="fas fa-exclamation-circle me-1"></i>{{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">课程代码，创建后不可修改</div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label">
+                                    {{ form.course_name.label.text }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.course_name(class="form-control", placeholder="如：高等数学") }}
+                                {% if form.course_name.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.course_name.errors %}
+                                    <i class="fas fa-exclamation-circle me-1"></i>{{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 学分和学期信息 -->
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label">
+                                    {{ form.credit.label.text }} <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    {{ form.credit(class="form-control", step="0.5", min="0.5", max="10") }}
+                                    <span class="input-group-text">学分</span>
+                                </div>
+                                {% if form.credit.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.credit.errors %}
+                                    <i class="fas fa-exclamation-circle me-1"></i>{{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label">{{ form.semester.label.text }}</label>
+                                {{ form.semester(class="form-control", placeholder="如：第一学期") }}
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label">{{ form.academic_year.label.text }}</label>
+                                {{ form.academic_year(class="form-control", placeholder="如：2023-2024") }}
+                            </div>
+                        </div>
+
+                        <!-- 课程描述 -->
+                        <div class="mb-4">
+                            <label class="form-label">{{ form.description.label.text }}</label>
+                            {{ form.description(class="form-control", rows="4", 
+                                              placeholder="请输入课程描述、教学目标等信息...") }}
+                            {% if form.description.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.description.errors %}
+                                <i class="fas fa-exclamation-circle me-1"></i>{{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">可填写课程大纲、教学要求等信息，最多500个字符</div>
+                        </div>
+
+                        <!-- 课程类型（扩展字段，可选） -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">课程属性</label>
+                            <div class="border rounded p-3">
+                                <div class="row">
+                                    <div class="col-md-4 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   id="isRequired" name="is_required" 
+                                                   {{ 'checked' if course and course.is_required else '' }}>
+                                            <label class="form-check-label" for="isRequired">
+                                                必修课程
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   id="hasExam" name="has_exam" 
+                                                   {{ 'checked' if course and course.has_exam else '' }}>
+                                            <label class="form-check-label" for="hasExam">
+                                                有期末考试
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   id="hasCoursework" name="has_coursework" 
+                                                   {{ 'checked' if course and course.has_coursework else '' }}>
+                                            <label class="form-check-label" for="hasCoursework">
+                                                有平时作业
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 警告信息（如果课程已有成绩） -->
+                        {% if course and course.grades %}
+                        <div class="alert alert-warning">
+                            <h6 class="alert-heading mb-2">
+                                <i class="fas fa-exclamation-triangle me-2"></i>重要提示
+                            </h6>
+                            <p class="mb-2">本课程已有 <strong>{{ course.grades|length }}</strong> 条成绩记录。</p>
+                            <ul class="mb-0 small">
+                                <li>修改课程信息不会影响已有成绩</li>
+                                <li>修改学分可能会影响学生的绩点计算</li>
+                                <li>请谨慎修改课程代码和名称</li>
+                            </ul>
+                        </div>
+                        {% endif %}
+
+                        <!-- 表单操作按钮 -->
+                        <div class="d-flex justify-content-between align-items-center pt-4 border-top">
+                            <div>
+                                {% if course and current_user.is_admin %}
+                                <button type="button" class="btn btn-outline-danger" 
+                                        onclick="showDeleteConfirm()">
+                                    <i class="fas fa-trash me-1"></i>删除课程
+                                </button>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <a href="{{ url_for('main.course_list') }}" 
+                                   class="btn btn-outline-secondary me-2">
+                                    <i class="fas fa-times me-1"></i>取消
+                                </a>
+                                <button type="submit" class="btn {{ 'btn-warning' if course else 'btn-primary' }}">
+                                    <i class="fas fa-save me-1"></i>
+                                    {{ '保存修改' if course else '添加课程' }}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 填写提示 -->
+            <div class="card mt-4 border-info">
+                <div class="card-body py-3">
+                    <h6 class="card-title text-info mb-2">
+                        <i class="fas fa-lightbulb me-2"></i>填写提示
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <strong>课程代码：</strong>必须是唯一的，建议使用英文缩写
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <strong>学分设置：</strong>一般为0.5-10分，支持0.5的倍数
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <strong>学期设置：</strong>可按实际教学安排填写
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <strong>课程描述：</strong>详细描述有助于学生了解课程
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+{% if course and current_user.is_admin %}
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>确认删除课程
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>您确定要删除课程 <strong>{{ course.course_name }}</strong> 吗？</p>
+                
+                {% if course.grades %}
+                <div class="alert alert-danger">
+                    <h6 class="alert-heading mb-2">
+                        <i class="fas fa-exclamation-circle me-2"></i>警告：关联数据
+                    </h6>
+                    <p class="mb-0">本课程已有 <strong>{{ course.grades|length }}</strong> 条成绩记录，删除课程将同时删除：</p>
+                    <ul class="mb-0">
+                        <li>所有相关的学生成绩记录</li>
+                        <li>所有的成绩统计和图表数据</li>
+                        <li>课程的历史记录</li>
+                    </ul>
+                </div>
+                {% endif %}
+                
+                <div class="mt-3">
+                    <label class="form-label small">请输入确认短语：</label>
+                    <input type="text" class="form-control" id="confirmDeleteText" 
+                           placeholder="请输入 '确认删除{{ course.course_code }}'">
+                    <div class="form-text text-danger">此操作不可恢复！</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <form method="POST" action="{{ url_for('main.delete_course', course_id=course.id) }}" 
+                      style="display: inline;">
+                    <button type="submit" class="btn btn-danger" id="confirmDeleteBtn" disabled>
+                        <i class="fas fa-trash me-1"></i>确认删除
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 删除确认功能
+function showDeleteConfirm() {
+    const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    modal.show();
+}
+
+// 删除确认按钮状态
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmDeleteText = document.getElementById('confirmDeleteText');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    
+    if (confirmDeleteText && confirmDeleteBtn) {
+        confirmDeleteText.addEventListener('input', function() {
+            const expectedText = '确认删除{{ course.course_code if course else "" }}';
+            confirmDeleteBtn.disabled = this.value !== expectedText;
+        });
+    }
+    
+    // 学分输入验证
+    const creditInput = document.getElementById('{{ form.credit.id }}');
+    if (creditInput) {
+        creditInput.addEventListener('change', function() {
+            let value = parseFloat(this.value);
+            if (isNaN(value) || value < 0.5 || value > 10) {
+                alert('学分必须在0.5到10之间！');
+                this.value = 2.0; // 默认值
+            } else {
+                // 限制为0.5的倍数
+                const rounded = Math.round(value * 2) / 2;
+                if (Math.abs(value - rounded) > 0.01) {
+                    this.value = rounded.toFixed(1);
+                }
+            }
+        });
+    }
+    
+    // 课程代码格式验证（仅添加时）
+    const courseCodeInput = document.getElementById('{{ form.course_code.id }}');
+    if (courseCodeInput && !courseCodeInput.readOnly) {
+        courseCodeInput.addEventListener('input', function() {
+            // 自动转换为大写，移除空格
+            this.value = this.value.toUpperCase().replace(/\s+/g, '');
+            
+            // 格式验证：字母数字组合
+            const isValid = /^[A-Z0-9]+$/.test(this.value);
+            if (this.value && !isValid) {
+                this.classList.add('is-invalid');
+                document.getElementById('courseCodeError').textContent = '只能包含大写字母和数字';
+            } else {
+                this.classList.remove('is-invalid');
+            }
+        });
+    }
+    
+    // 表单提交验证
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(event) {
+        let isValid = true;
+        const requiredFields = form.querySelectorAll('[required]');
+        
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                isValid = false;
+                field.classList.add('is-invalid');
+                
+                // 滚动到第一个错误字段
+                if (isValid === false) {
+                    field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            event.preventDefault();
+            alert('请填写所有必填字段（标有 * 的字段）');
+        }
+    });
+    
+    // 字符计数器
+    const descriptionTextarea = document.getElementById('{{ form.description.id }}');
+    if (descriptionTextarea) {
+        const counter = document.createElement('div');
+        counter.className = 'form-text text-end';
+        counter.id = 'charCounter';
+        descriptionTextarea.parentNode.appendChild(counter);
+        
+        function updateCounter() {
+            const count = descriptionTextarea.value.length;
+            counter.textContent = `${count}/500 字符`;
+            counter.className = `form-text text-end ${count > 500 ? 'text-danger' : 'text-muted'}`;
+        }
+        
+        descriptionTextarea.addEventListener('input', updateCounter);
+        updateCounter(); // 初始计数
+    }
+});
+</script>
+
+<style>
+/* 自定义样式 */
+.input-group-text {
+    background-color: #f8f9fa;
+}
+
+.form-control:read-only {
+    background-color: #f8f9fa;
+    cursor: not-allowed;
+}
+
+/* 字符计数器样式 */
+#charCounter {
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .btn {
+        padding: 0.5rem 1rem;
+    }
+}
+</style>
+{% endblock %}

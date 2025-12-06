@@ -1,0 +1,68 @@
+<!-- templates/index.html -->
+{% extends "base.html" %}
+
+{% block title %}欢迎 - 学生成绩管理系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 text-center">
+        <div class="card shadow fade-in">
+            <div class="card-body py-5">
+                <h1 class="display-4 text-primary mb-4">
+                    <i class="fas fa-graduation-cap"></i> 学生成绩管理系统
+                </h1>
+                <p class="lead mb-4">
+                    一个高效、直观的学生成绩管理与分析平台
+                </p>
+                <hr class="my-4">
+                <p>轻松管理学生信息、录入成绩、生成统计图表，并支持数据导出。</p>
+                
+                <div class="mt-5">
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary btn-lg px-4">
+                            <i class="fas fa-tachometer-alt"></i> 进入仪表板
+                        </a>
+                    {% else %}
+                        <div class="d-grid gap-2 d-md-block">
+                            <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg px-4 me-2">
+                                <i class="fas fa-sign-in-alt"></i> 登录
+                            </a>
+                            <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary btn-lg px-4">
+                                <i class="fas fa-user-plus"></i> 注册新账户
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="row mt-5 text-start">
+                    <div class="col-md-4 mb-3">
+                        <h5><i class="fas fa-user-check text-success"></i> 功能特点</h5>
+                        <ul class="list-unstyled">
+                            <li>• 学生信息管理</li>
+                            <li>• 成绩录入与查询</li>
+                            <li>• 数据统计与分析</li>
+                            <li>• 报表导出</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <h5><i class="fas fa-shield-alt text-warning"></i> 安全可靠</h5>
+                        <ul class="list-unstyled">
+                            <li>• 用户权限管理</li>
+                            <li>• 数据加密存储</li>
+                            <li>• 操作日志记录</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <h5><i class="fas fa-chart-line text-info"></i> 智能分析</h5>
+                        <ul class="list-unstyled">
+                            <li>• 成绩分布图表</li>
+                            <li>• 趋势分析</li>
+                            <li>• 自定义报告</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
