@@ -1,0 +1,451 @@
+<!-- templates/statistics.html -->
+{% extends "base.html" %}
+
+{% block title %}成绩统计 - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="text-center mb-5">
+        <h2 class="h3 mb-3">
+            <i class="fas fa-chart-bar text-primary me-2"></i>成绩统计分析
+        </h2>
+        <p class="text-muted">可视化分析学生成绩分布，生成统计报告</p>
+    </div>
+
+    <!-- 统计条件选择 -->
+    <div class="row justify-content-center mb-5">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cogs me-2"></i>统计参数设置
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="" class="row g-3">
+                        {{ form.hidden_tag() }}
+                        
+                        <!-- 课程选择 -->
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.course_id.label.text }}</label>
+                            {{ form.course_id(class="form-select") }}
+                        </div>
+                        
+                        <!-- 学期和学年 -->
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.semester.label.text }}</label>
+                            {{ form.semester(class="form-control", placeholder="如：第一学期") }}
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.academic_year.label.text }}</label>
+                            {{ form.academic_year(class="form-control", placeholder="如：2023-2024") }}
+                        </div>
+                        
+                        <!-- 统计按钮 -->
+                        <div class="col-12 text-center mt-3">
+                            {{ form.submit(class="btn btn-primary btn-lg px-5") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 统计结果显示 -->
+    {% if stats %}
+    <div class="row">
+        <!-- 统计摘要卡片 -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>统计摘要
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- 课程信息 -->
+                    <div class="text-center mb-4">
+                        <h5 class="mb-1">{{ stats.course.course_name }}</h5>
+                        <p class="text-muted small mb-2">
+                            <code>{{ stats.course.course_code }}</code> | 
+                            {{ stats.course.credit }} 学分
+                        </p>
+                        {% if stats.course.semester %}
+                        <span class="badge bg-info me-1">{{ stats.course.semester }}</span>
+                        {% endif %}
+                        {% if stats.course.academic_year %}
+                        <span class="badge bg-secondary">{{ stats.course.academic_year }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- 统计指标 -->
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>样本数量</span>
+                            <span class="badge bg-primary rounded-pill px-3">{{ stats.count }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>平均分</span>
+                            <span class="fw-bold text-primary">{{ "%.2f"|format(stats.avg_score) }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>最高分</span>
+                            <span class="fw-bold text-success">{{ stats.max_score }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>最低分</span>
+                            <span class="fw-bold text-danger">{{ stats.min_score }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>标准差</span>
+                            <span class="fw-bold text-info">{{ "%.2f"|format(stats.std_dev) }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>及格率</span>
+                            <span class="fw-bold text-success">{{ "%.1f"|format(stats.pass_rate) }}%</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 成绩等级分布 -->
+                    <div class="mt-4">
+                        <h6 class="border-bottom pb-2">成绩等级分布</h6>
+                        <div class="row text-center g-2">
+                            <div class="col">
+                                <div class="border rounded p-2 bg-success bg-opacity-10">
+                                    <div class="fw-bold text-success">优秀</div>
+                                    <small>(90-100分)</small>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="border rounded p-2 bg-primary bg-opacity-10">
+                                    <div class="fw-bold text-primary">良好</div>
+                                    <small>(80-89分)</small>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="border rounded p-2 bg-info bg-opacity-10">
+                                    <div class="fw-bold text-info">中等</div>
+                                    <small>(70-79分)</small>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="border rounded p-2 bg-warning bg-opacity-10">
+                                    <div class="fw-bold text-warning">及格</div>
+                                    <small>(60-69分)</small>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="border rounded p-2 bg-danger bg-opacity-10">
+                                    <div class="fw-bold text-danger">不及格</div>
+                                    <small>(0-59分)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 图表展示区域 -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>成绩分布图表
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if chart_data %}
+                    <!-- 饼图容器 -->
+                    <div class="mb-5">
+                        <h6 class="mb-3">成绩等级分布饼图</h6>
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="gradePieChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- 柱状图容器 -->
+                    <div class="mb-5">
+                        <h6 class="mb-3">各分数段人数统计</h6>
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="gradeBarChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- 查看详细图表 -->
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('main.grade_chart', course_id=stats.course.id) }}" 
+                           target="_blank" class="btn btn-outline-primary">
+                            <i class="fas fa-external-link-alt me-2"></i>查看详细统计分析图
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-chart-pie fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">暂无图表数据</h5>
+                        <p class="text-muted small">无法生成统计图表，请确保有足够的成绩数据</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分析报告 -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt me-2"></i>分析报告
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- 总体评价 -->
+                        <div class="col-md-6 mb-4">
+                            <h6 class="border-bottom pb-2 mb-3">总体评价</h6>
+                            {% if stats.avg_score >= 85 %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-award me-2"></i>
+                                <strong>优秀水平：</strong>本课程整体成绩优异，平均分 {{ "%.2f"|format(stats.avg_score) }} 分，
+                                说明教学效果良好，学生掌握程度高。
+                            </div>
+                            {% elif stats.avg_score >= 75 %}
+                            <div class="alert alert-primary">
+                                <i class="fas fa-thumbs-up me-2"></i>
+                                <strong>良好水平：</strong>本课程整体成绩良好，平均分 {{ "%.2f"|format(stats.avg_score) }} 分，
+                                教学效果达到预期目标。
+                            </div>
+                            {% elif stats.avg_score >= 60 %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>中等水平：</strong>本课程整体成绩中等，平均分 {{ "%.2f"|format(stats.avg_score) }} 分，
+                                建议关注学习困难的学生。
+                            </div>
+                            {% else %}
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                <strong>需要关注：</strong>本课程整体成绩偏低，平均分 {{ "%.2f"|format(stats.avg_score) }} 分，
+                                建议分析教学方法和学生理解情况。
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- 教学建议 -->
+                        <div class="col-md-6 mb-4">
+                            <h6 class="border-bottom pb-2 mb-3">教学建议</h6>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    及格率 {{ "%.1f"|format(stats.pass_rate) }}%，{% if stats.pass_rate >= 90 %}表现优异{% elif stats.pass_rate >= 70 %}达到预期{% else %}需要提升{% endif %}
+                                </li>
+                                <li class="list-group-item">
+                                    <i class="fas fa-users text-primary me-2"></i>
+                                    共 {{ stats.count }} 名学生参与统计，样本量{% if stats.count >= 30 %}充足{% else %}偏小，结果仅供参考{% endif %}
+                                </li>
+                                <li class="list-group-item">
+                                    <i class="fas fa-chart-area text-info me-2"></i>
+                                    标准差 {{ "%.2f"|format(stats.std_dev) }}，成绩分布{% if stats.std_dev <= 10 %}较为集中{% elif stats.std_dev <= 20 %}分布正常{% else %}较为分散{% endif %}
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- 数据分析 -->
+                    <div class="mt-4">
+                        <h6 class="border-bottom pb-2 mb-3">数据分析</h6>
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <div class="border rounded p-3">
+                                    <div class="fw-bold text-primary mb-1">成绩集中度</div>
+                                    <div class="text-muted small">
+                                        {% if stats.std_dev <= 10 %}
+                                        成绩分布集中，差异小
+                                        {% elif stats.std_dev <= 20 %}
+                                        成绩分布合理，有一定差异
+                                        {% else %}
+                                        成绩分布分散，差异明显
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3">
+                                    <div class="fw-bold text-success mb-1">教学效果</div>
+                                    <div class="text-muted small">
+                                        {% if stats.avg_score >= 80 and stats.pass_rate >= 90 %}
+                                        教学效果优秀
+                                        {% elif stats.avg_score >= 70 and stats.pass_rate >= 80 %}
+                                        教学效果良好
+                                        {% elif stats.pass_rate >= 60 %}
+                                        教学效果基本达标
+                                        {% else %}
+                                        需要改进教学方法
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3">
+                                    <div class="fw-bold text-info mb-1">学生掌握度</div>
+                                    <div class="text-muted small">
+                                        {% if stats.avg_score >= 85 %}
+                                        学生掌握程度高
+                                        {% elif stats.avg_score >= 75 %}
+                                        学生掌握程度良好
+                                        {% elif stats.avg_score >= 60 %}
+                                        学生掌握程度一般
+                                        {% else %}
+                                        学生掌握程度需要提升
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3">
+                                    <div class="fw-bold text-warning mb-1">关注重点</div>
+                                    <div class="text-muted small">
+                                        {% if stats.pass_rate < 70 %}
+                                        重点关注及格率
+                                        {% elif stats.min_score < 40 %}
+                                        关注低分学生
+                                        {% else %}
+                                        保持当前教学状态
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% elif request.method == 'POST' %}
+    <!-- 没有数据的提示 -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted mb-3">暂无统计结果</h5>
+                    <p class="text-muted mb-4">所选课程暂无成绩数据，无法进行统计分析</p>
+                    <a href="{{ url_for('main.course_list') }}" class="btn btn-primary">
+                        <i class="fas fa-book me-2"></i>查看课程列表
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// 初始化图表
+document.addEventListener('DOMContentLoaded', function() {
+    {% if chart_data %}
+    // 饼图配置
+    const pieCtx = document.getElementById('gradePieChart').getContext('2d');
+    const pieChart = new Chart(pieCtx, {
+        type: 'pie',
+        data: {
+            labels: {{ chart_data.labels|tojson }},
+            datasets: [{
+                data: {{ chart_data.data|tojson }},
+                backgroundColor: {{ chart_data.colors|tojson }},
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return `${label}: ${value}人 (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // 柱状图配置
+    const barCtx = document.getElementById('gradeBarChart').getContext('2d');
+    const barChart = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ chart_data.labels|tojson }},
+            datasets: [{
+                label: '人数',
+                data: {{ chart_data.data|tojson }},
+                backgroundColor: {{ chart_data.colors|tojson }},
+                borderColor: {{ chart_data.colors|tojson }},
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: '人数'
+                    },
+                    ticks: {
+                        stepSize: 1
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: '成绩等级'
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.raw}人`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+    
+    // 自动选择课程（如果URL中有参数）
+    const urlParams = new URLSearchParams(window.location.search);
+    const courseId = urlParams.get('course_id');
+    if (courseId) {
+        const courseSelect = document.getElementById('{{ form.course_id.id }}');
+        if (courseSelect) {
+            courseSelect.value = courseId;
+        }
+    }
+});
+</script>
+{% endblock %}

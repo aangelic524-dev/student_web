@@ -1,0 +1,333 @@
+<!-- templates/courses.html -->
+{% extends "base.html" %}
+
+{% block title %}课程列表 - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="h4 mb-0">
+                <i class="fas fa-book text-primary me-2"></i>课程管理
+            </h2>
+            <p class="text-muted small mb-0">系统预置课程，可进行成绩录入</p>
+        </div>
+        <div class="btn-group">
+            {% if current_user.is_admin %}
+            <a href="{{ url_for('main.add_course') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>添加课程
+            </a>
+            {% endif %}
+            <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#courseHelp">
+                <i class="fas fa-question-circle me-1"></i>使用说明
+            </button>
+        </div>
+    </div>
+
+    <!-- 课程卡片展示 -->
+    <div class="row">
+        {% for course in courses %}
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card h-100 shadow-sm border-start border-4 border-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="card-title mb-1">{{ course.course_name }}</h5>
+                            <h6 class="card-subtitle text-muted">
+                                <code>{{ course.course_code }}</code>
+                            </h6>
+                        </div>
+                        <div class="btn-group">
+                            <a href="{{ url_for('main.statistics') }}?course_id={{ course.id }}" 
+                                class="btn btn-sm btn-outline-info" title="成绩统计">
+                                <i class="fas fa-chart-bar"></i>
+                            </a>
+                            {% if current_user.is_admin %}
+                                <a href="{{ url_for('main.edit_course', course_id=course.id) }}" 
+                                   class="btn btn-sm btn-outline-warning" title="编辑课程">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn btn-sm btn-outline-danger" 
+                                    onclick="showDeleteCourseModal({{ course.id }}, '{{ course.course_name }}')"
+                                    title="删除课程">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <span class="badge bg-primary rounded-pill mb-3">
+                        {{ course.credit }} 学分
+                    </span>
+                    
+                    <!-- 课程信息 -->
+                    <div class="mb-3">
+                        {% if course.semester %}
+                        <span class="badge bg-info me-1">{{ course.semester }}</span>
+                        {% endif %}
+                        {% if course.academic_year %}
+                        <span class="badge bg-secondary">{{ course.academic_year }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- 课程描述 -->
+                    {% if course.description %}
+                    <p class="card-text text-muted small mb-4">
+                        {{ course.description }}
+                    </p>
+                    {% else %}
+                    <p class="card-text text-muted small mb-4">
+                        <i>暂无课程描述</i>
+                    </p>
+                    {% endif %}
+                    
+                    <!-- 统计信息 -->
+                    <div class="row text-center g-2 mb-3">
+                        <div class="col-6">
+                            <div class="border rounded p-2">
+                                <small class="text-muted d-block">成绩数量</small>
+                                <span class="fw-bold">{{ course.grades|length }}</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2">
+                                <small class="text-muted d-block">开设时间</small>
+                                <span class="fw-bold">{{ course.created_at.strftime('%Y-%m') }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 操作按钮 -->
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('main.statistics') }}?course_id={{ course.id }}" 
+                           class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-chart-bar me-1"></i>成绩统计
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-book-open fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted mb-2">暂无课程数据</h5>
+                    <p class="text-muted small">请联系系统管理员添加课程</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 课程表格视图（响应式） -->
+    <div class="card shadow d-none d-lg-block">
+        <div class="card-header bg-light">
+            <h6 class="mb-0">
+                <i class="fas fa-table me-2"></i>课程详细列表
+            </h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>课程代码</th>
+                            <th>课程名称</th>
+                            <th class="text-center">学分</th>
+                            <th>学期</th>
+                            <th>学年</th>
+                            <th>创建时间</th>
+                            <th class="text-end">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for course in courses %}
+                        <tr>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('main.statistics') }}?course_id={{ course.id }}" 
+                                        class="btn btn-outline-info" title="查看统计">
+                                        <i class="fas fa-chart-bar"></i>
+                                    </a>
+                                    {% if current_user.is_admin %}
+                                    <a href="{{ url_for('main.edit_course', course_id=course.id) }}" 
+                                        class="btn btn-outline-warning" title="编辑课程">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button class="btn btn-outline-danger" 
+                                        onclick="showDeleteCourseModal({{ course.id }}, '{{ course.course_name }}')"
+                                        title="删除课程">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <code>{{ course.course_code }}</code>
+                            </td>
+                            <td>
+                                <strong>{{ course.course_name }}</strong>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-primary rounded-pill px-3">
+                                    {{ course.credit }}
+                                </span>
+                            </td>
+                            <td>{{ course.semester or '未设置' }}</td>
+                            <td>{{ course.academic_year or '未设置' }}</td>
+                            <td>{{ course.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('main.statistics') }}?course_id={{ course.id }}" 
+                                       class="btn btn-outline-info" title="查看统计">
+                                        <i class="fas fa-chart-bar"></i>
+                                    </a>
+                                    <a href="{{ url_for('main.grade_chart', course_id=course.id) }}" 
+                                       target="_blank" class="btn btn-outline-success" title="查看图表">
+                                        <i class="fas fa-chart-pie"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 使用说明模态框 -->
+    <div class="modal fade" id="courseHelp" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-question-circle text-primary me-2"></i>课程管理说明
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>系统预置课程</h6>
+                    <p>本系统已预置常用的大学基础课程，包括：</p>
+                    <ul>
+                        <li>高等数学（4学分）</li>
+                        <li>大学物理（3.5学分）</li>
+                        <li>大学英语（3学分）</li>
+                        <li>计算机基础（3学分）</li>
+                        <li>大学化学（3学分）</li>
+                    </ul>
+                    
+                    <h6 class="mt-3">使用流程</h6>
+                    <ol class="small">
+                        <li>选择课程进行成绩统计</li>
+                        <li>查看成绩分布图表</li>
+                        <li>为学生添加对应课程的成绩</li>
+                    </ol>
+                    
+                    <div class="alert alert-info small mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>提示：</strong>如需添加新课程，请联系管理员修改数据库。
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteCourseModal" tabindex="-1" aria-labelledby="deleteCourseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteCourseModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>删除课程确认
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>确定要删除课程 <strong id="deleteCourseName"></strong> 吗？</p>
+                <div class="alert alert-warning small">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>注意：</strong>删除课程将同时删除所有相关的成绩记录！
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="confirmDeleteCourse">
+                    <label class="form-check-label" for="confirmDeleteCourse">
+                        我了解此操作不可恢复
+                    </label>
+                </div>
+                <!-- 隐藏字段，用于存储要删除的课程ID -->
+                <input type="hidden" id="deleteCourseId" name="course_id">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <form method="POST" action="" id="deleteCourseForm">
+                    <button type="submit" class="btn btn-danger" id="confirmDeleteCourseBtn" disabled>
+                        <i class="fas fa-trash me-1"></i>确认删除
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- JavaScript代码 -->
+    <script>
+    let currentCourseId = null;
+    let currentCourseName = '';
+
+    function showDeleteCourseModal(courseId, courseName) {
+        currentCourseId = courseId;
+        currentCourseName = courseName;
+        
+        document.getElementById('deleteCourseName').textContent = courseName;
+        document.getElementById('deleteCourseId').value = courseId;
+        document.getElementById('deleteCourseForm').action = `/courses/${courseId}/delete`;
+        
+        // 重置确认复选框
+        document.getElementById('confirmDeleteCourse').checked = false;
+        document.getElementById('confirmDeleteCourseBtn').disabled = true;
+        
+        const modal = new bootstrap.Modal(document.getElementById('deleteCourseModal'));
+        modal.show();
+    }
+
+    // 确认删除按钮状态
+    document.getElementById('confirmDeleteCourse').addEventListener('change', function() {
+        document.getElementById('confirmDeleteCourseBtn').disabled = !this.checked;
+    });
+
+    // 批量操作按钮（可选）
+    function bulkExportCourses() {
+        const selectedCourses = [];
+        document.querySelectorAll('.course-checkbox:checked').forEach(checkbox => {
+            selectedCourses.push(checkbox.value);
+        });
+        
+        if (selectedCourses.length === 0) {
+            alert('请先选择要导出的课程');
+            return;
+        }
+        
+        // 这里可以添加批量导出逻辑
+        alert(`将导出 ${selectedCourses.length} 门课程`);
+    }
+
+    // 课程搜索功能增强
+    const courseSearchInput = document.querySelector('input[name="search"]');
+    if (courseSearchInput) {
+        courseSearchInput.addEventListener('input', debounce(function() {
+            const searchTerm = this.value.toLowerCase();
+            const courseCards = document.querySelectorAll('.card.h-100');
+            
+            courseCards.forEach(card => {
+                const cardText = card.textContent.toLowerCase();
+                card.style.display = cardText.includes(searchTerm) ? '' : 'none';
+            });
+        }, 300));
+    }
+    </script>
+{% endblock %}

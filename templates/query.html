@@ -1,0 +1,322 @@
+<!-- templates/query.html -->
+{% extends "base.html" %}
+
+{% block title %}成绩查询 - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- 页面标题 -->
+            <div class="text-center mb-5">
+                <h2 class="h3 mb-3">
+                    <i class="fas fa-search text-primary me-2"></i>成绩查询系统
+                </h2>
+                <p class="text-muted">支持按学号、姓名、班级、课程等多种方式查询学生成绩</p>
+            </div>
+
+            <!-- 查询表单卡片 -->
+            <div class="card shadow-lg mb-5">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-filter me-2"></i>查询条件
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="" class="row g-4">
+                        {{ form.hidden_tag() }}
+                        
+                        <!-- 查询方式选择 -->
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.query_type.label.text }}</label>
+                            {{ form.query_type(class="form-select form-select-lg") }}
+                        </div>
+                        
+                        <!-- 查询内容输入 -->
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.query_text.label.text }}</label>
+                            {{ form.query_text(class="form-control form-control-lg", 
+                                              placeholder="请输入查询内容...") }}
+                            {% if form.query_text.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.query_text.errors %}
+                                <i class="fas fa-exclamation-circle me-1"></i>{{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- 查询按钮 -->
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                <i class="fas fa-search me-1"></i>开始查询
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <!-- 查询提示 -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="alert alert-info small mb-0">
+                                <div class="d-flex">
+                                    <i class="fas fa-lightbulb mt-1 me-3"></i>
+                                    <div>
+                                        <strong>查询提示：</strong>
+                                        <ul class="mb-0 mt-1">
+                                            <li>按学号查询：输入完整或部分学号</li>
+                                            <li>按姓名查询：输入完整或部分姓名（支持模糊搜索）</li>
+                                            <li>按班级查询：输入班级名称，如"计算机1班"</li>
+                                            <li>按课程查询：输入课程代码或名称，如"MATH101"或"高等数学"</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 查询结果区域 -->
+            {% if results %}
+            <div class="card shadow">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clipboard-check me-2"></i>查询结果
+                        <span class="badge bg-light text-success ms-2">
+                            {% if results.type == 'course' %}
+                                共 {{ results.grades|length }} 条成绩记录
+                            {% else %}
+                                共 {{ results|length }} 名学生
+                            {% endif %}
+                        </span>
+                    </h5>
+                    <button class="btn btn-light btn-sm" onclick="printResults()">
+                        <i class="fas fa-print me-1"></i>打印结果
+                    </button>
+                </div>
+                
+                <div class="card-body">
+                    {% if results.type == 'course' %}
+                        <!-- 课程查询结果 -->
+                        <div class="mb-4">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-book me-2"></i>
+                                课程：{{ results.course.course_name }} 
+                                <small class="text-muted">({{ results.course.course_code }})</small>
+                            </h6>
+                            
+                            {% if results.grades %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>学号</th>
+                                            <th>姓名</th>
+                                            <th class="text-center">成绩</th>
+                                            <th class="text-center">等级</th>
+                                            <th class="text-center">绩点</th>
+                                            <th>考试日期</th>
+                                            <th class="text-end">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for grade in results.grades %}
+                                        <tr>
+                                            <td>{{ grade.student.student_id }}</td>
+                                            <td>
+                                                <a href="{{ url_for('main.student_detail', student_id=grade.student.id) }}" 
+                                                   class="text-decoration-none">
+                                                    {{ grade.student.name }}
+                                                </a>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="fw-bold {% if grade.score >= 90 %}text-success{% elif grade.score >= 60 %}text-primary{% else %}text-danger{% endif %}">
+                                                    {{ grade.score }}
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                {% set grade_level = grade.grade_level %}
+                                                {% if grade_level == 'A' %}
+                                                    <span class="badge bg-success">优秀</span>
+                                                {% elif grade_level == 'B' %}
+                                                    <span class="badge bg-primary">良好</span>
+                                                {% elif grade_level == 'C' %}
+                                                    <span class="badge bg-info">中等</span>
+                                                {% elif grade_level == 'D' %}
+                                                    <span class="badge bg-warning">及格</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">不及格</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                {{ grade.grade_point }}
+                                            </td>
+                                            <td>
+                                                {% if grade.exam_date %}
+                                                    {{ grade.exam_date.strftime('%Y-%m-%d') }}
+                                                {% else %}
+                                                    <span class="text-muted">未设置</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-end">
+                                                <a href="{{ url_for('main.student_detail', student_id=grade.student.id) }}" 
+                                                   class="btn btn-sm btn-outline-info">
+                                                    查看详情
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- 课程统计摘要 -->
+                            <div class="row mt-4">
+                                <div class="col-md-3">
+                                    <div class="card border-success">
+                                        <div class="card-body text-center">
+                                            <h6 class="card-title text-muted">平均分</h6>
+                                            <h4 class="text-success">
+                                                {{ (results.grades|map(attribute='score')|sum / results.grades|length)|round(2) }}
+                                            </h4>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card border-primary">
+                                        <div class="card-body text-center">
+                                            <h6 class="card-title text-muted">最高分</h6>
+                                            <h4 class="text-primary">
+                                                {{ results.grades|map(attribute='score')|max }}
+                                            </h4>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card border-warning">
+                                        <div class="card-body text-center">
+                                            <h6 class="card-title text-muted">最低分</h6>
+                                            <h4 class="text-warning">
+                                                {{ results.grades|map(attribute='score')|min }}
+                                            </h4>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card border-info">
+                                        <div class="card-body text-center">
+                                            <h6 class="card-title text-muted">及格率</h6>
+                                            <h4 class="text-info">
+                                                {{ ((results.grades|selectattr('score', '>=', 60)|list|length / results.grades|length) * 100)|round(1) }}%
+                                            </h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">暂无该课程的成绩记录</h5>
+                                <p class="text-muted small">请先为学生添加此课程的成绩</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                    {% else %}
+                        <!-- 学生查询结果 -->
+                        {% if results %}
+                        <div class="row">
+                            {% for student in results %}
+                            <div class="col-md-6 col-lg-4 mb-4">
+                                <div class="card h-100 border-start border-3 border-primary">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-start mb-3">
+                                            <div class="flex-grow-1">
+                                                <h5 class="card-title mb-1">{{ student.name }}</h5>
+                                                <p class="card-subtitle text-muted small">
+                                                    <i class="fas fa-id-card me-1"></i>{{ student.student_id }}
+                                                </p>
+                                            </div>
+                                            <span class="badge bg-primary">
+                                                {{ student.gender or '未知' }}
+                                            </span>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <p class="small mb-1">
+                                                <i class="fas fa-users me-1"></i>
+                                                {{ student.class_name or '未设置班级' }}
+                                            </p>
+                                            <p class="small mb-1">
+                                                <i class="fas fa-graduation-cap me-1"></i>
+                                                {{ student.major or '未设置专业' }}
+                                            </p>
+                                            {% if student.email %}
+                                            <p class="small mb-1">
+                                                <i class="fas fa-envelope me-1"></i>
+                                                {{ student.email }}
+                                            </p>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="d-grid gap-2">
+                                            <a href="{{ url_for('main.student_detail', student_id=student.id) }}" 
+                                               class="btn btn-outline-primary btn-sm">
+                                                查看详情
+                                            </a>
+                                            <a href="{{ url_for('main.add_grade', student_id=student.id) }}" 
+                                               class="btn btn-outline-success btn-sm">
+                                                添加成绩
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">未找到匹配的学生</h5>
+                            <p class="text-muted small">请调整查询条件后重新搜索</p>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 打印查询结果
+function printResults() {
+    window.print();
+}
+
+// 自动聚焦查询输入框
+document.addEventListener('DOMContentLoaded', function() {
+    const queryInput = document.getElementById('{{ form.query_text.id }}');
+    if (queryInput) {
+        queryInput.focus();
+    }
+    
+    // 查询类型改变时更新placeholder
+    const queryType = document.getElementById('{{ form.query_type.id }}');
+    if (queryType && queryInput) {
+        queryType.addEventListener('change', function() {
+            const placeholders = {
+                'student_id': '请输入学号，如"20230001"或"2023"',
+                'name': '请输入学生姓名，如"张三"或"张"',
+                'class': '请输入班级名称，如"计算机1班"',
+                'course': '请输入课程代码或名称，如"MATH101"或"高等数学"'
+            };
+            queryInput.placeholder = placeholders[this.value] || '请输入查询内容...';
+        });
+    }
+});
+</script>
+{% endblock %}

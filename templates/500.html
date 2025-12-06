@@ -1,0 +1,68 @@
+<!-- templates/500.html -->
+{% extends "base.html" %}
+
+{% block title %}服务器错误 - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container text-center py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <!-- 错误图标 -->
+                    <div class="error-icon mb-4">
+                        <i class="fas fa-server fa-5x text-danger"></i>
+                    </div>
+                    
+                    <!-- 错误代码和标题 -->
+                    <h1 class="display-1 fw-bold text-muted">500</h1>
+                    <h2 class="h4 mb-4">服务器内部错误</h2>
+                    
+                    <!-- 错误描述 -->
+                    <p class="lead mb-4">
+                        服务器遇到了意外情况，无法完成您的请求。
+                    </p>
+                    
+                    <!-- 系统管理员提示 -->
+                    <div class="alert alert-warning text-start" role="alert">
+                        <h5 class="alert-heading"><i class="fas fa-exclamation-circle"></i> 给管理员的话</h5>
+                        <p class="mb-0">
+                            服务器日志中可能包含此错误的详细信息。请检查日志文件以获取更多技术细节。
+                        </p>
+                    </div>
+                    
+                    <!-- 用户指引 -->
+                    <div class="card mb-4 border-info">
+                        <div class="card-body text-start">
+                            <h5 class="card-title"><i class="fas fa-user-check"></i> 您可以：</h5>
+                            <ul class="mb-0">
+                                <li>稍后重试此操作</li>
+                                <li>如果问题持续存在，请联系系统管理员</li>
+                                <li>返回安全页面继续其他操作</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- 操作按钮 -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-center">
+                        <a href="{{ url_for('main.index') }}" class="btn btn-primary btn-lg px-4">
+                            <i class="fas fa-home"></i> 返回首页
+                        </a>
+                        <a href="mailto:admin@example.com" class="btn btn-outline-danger btn-lg px-4">
+                            <i class="fas fa-envelope"></i> 报告问题
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 技术支持信息 -->
+            <div class="mt-4">
+                <p class="small text-muted">
+                    错误ID: <code>{{ request.id if request.id else 'N/A' }}</code> | 
+                    时间: <span class="current-datetime"></span>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

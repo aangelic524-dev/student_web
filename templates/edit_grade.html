@@ -1,0 +1,408 @@
+<!-- templates/edit_grade.html -->
+{% extends "base.html" %}
+
+{% block title %}编辑成绩 - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- 页面标题和导航 -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="h4 mb-0">
+                        <i class="fas fa-edit text-warning me-2"></i>编辑成绩
+                    </h2>
+                    <p class="text-muted small mb-0">
+                        学生：<strong>{{ student.name }}</strong> | 
+                        课程：<strong>{{ grade.course.course_name }}</strong>
+                    </p>
+                </div>
+                <div>
+                    <a href="{{ url_for('main.student_detail', student_id=student.id) }}" 
+                       class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i>返回学生详情
+                    </a>
+                </div>
+            </div>
+
+            <!-- 成绩信息摘要 -->
+            <div class="card border-warning mb-4">
+                <div class="card-body py-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center" 
+                                         style="width: 50px; height: 50px;">
+                                        <i class="fas fa-edit"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">{{ student.name }}</h6>
+                                    <div class="text-muted small">
+                                        <span class="me-3">
+                                            <i class="fas fa-id-card me-1"></i>{{ student.student_id }}
+                                        </span>
+                                        <span>
+                                            <i class="fas fa-book me-1"></i>{{ grade.course.course_name }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <div class="text-muted small">
+                                当前成绩：<strong class="text-primary">{{ grade.score }}</strong> 分
+                                <span class="badge 
+                                    {% if grade.score >= 90 %}bg-success
+                                    {% elif grade.score >= 80 %}bg-primary
+                                    {% elif grade.score >= 70 %}bg-info
+                                    {% elif grade.score >= 60 %}bg-warning
+                                    {% else %}bg-danger{% endif %} ms-2">
+                                    {{ grade.grade_level }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 编辑成绩表单 -->
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-pencil-alt me-2"></i>修改成绩信息
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="" novalidate>
+                        {{ form.hidden_tag() }}
+                        
+                        <!-- 固定信息显示 -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card border-info">
+                                    <div class="card-body py-2">
+                                        <label class="text-muted small mb-1">学生信息</label>
+                                        <p class="mb-0 fw-bold">
+                                            {{ student.name }} ({{ student.student_id }})
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-info">
+                                    <div class="card-body py-2">
+                                        <label class="text-muted small mb-1">课程信息</label>
+                                        <p class="mb-0 fw-bold">
+                                            {{ grade.course.course_name }} ({{ grade.course.course_code }})
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 成绩输入 -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                成绩分数 <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group input-group-lg">
+                                <input type="number" class="form-control" name="score" 
+                                       id="score" min="0" max="100" step="0.1"
+                                       value="{{ grade.score }}" required>
+                                <span class="input-group-text">分</span>
+                            </div>
+                            <div class="form-text">请输入0-100之间的分数，可包含一位小数</div>
+                        </div>
+
+                        <!-- 自动计算的等级和绩点 -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label">成绩等级</label>
+                                <div class="border rounded p-3 text-center">
+                                    <span class="fw-bold fs-4" id="gradeLevelDisplay">
+                                        {{ grade.grade_level }}
+                                    </span>
+                                    <div class="text-muted small mt-1">根据分数自动计算</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">绩点</label>
+                                <div class="border rounded p-3 text-center">
+                                    <span class="fw-bold fs-4" id="gradePointDisplay">
+                                        {{ grade.grade_point }}
+                                    </span>
+                                    <div class="text-muted small mt-1">4.0制绩点</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 绩点计算规则 -->
+                        <div class="alert alert-light border mb-4">
+                            <h6 class="alert-heading mb-2">
+                                <i class="fas fa-calculator me-2"></i>绩点计算规则
+                            </h6>
+                            <div class="row g-2">
+                                <div class="col-md-2 col-6">
+                                    <div class="border rounded p-2 text-center">
+                                        <div class="fw-bold text-success">90-100分</div>
+                                        <small>4.0 绩点</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 col-6">
+                                    <div class="border rounded p-2 text-center">
+                                        <div class="fw-bold text-primary">80-89分</div>
+                                        <small>3.0 绩点</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 col-6">
+                                    <div class="border rounded p-2 text-center">
+                                        <div class="fw-bold text-info">70-79分</div>
+                                        <small>2.0 绩点</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 col-6">
+                                    <div class="border rounded p-2 text-center">
+                                        <div class="fw-bold text-warning">60-69分</div>
+                                        <small>1.0 绩点</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 col-6">
+                                    <div class="border rounded p-2 text-center">
+                                        <div class="fw-bold text-danger">0-59分</div>
+                                        <small>0.0 绩点</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 考试日期和备注 -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label">考试日期</label>
+                                <input type="date" class="form-control" name="exam_date" 
+                                       id="exam_date" value="{{ grade.exam_date.strftime('%Y-%m-%d') if grade.exam_date else '' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">成绩状态</label>
+                                <div class="border rounded p-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="makeupExam" 
+                                               {% if grade.note and '补考' in grade.note %}checked{% endif %}>
+                                        <label class="form-check-label" for="makeupExam">
+                                            补考成绩
+                                        </label>
+                                    </div>
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="checkbox" id="retakeCourse"
+                                               {% if grade.note and '重修' in grade.note %}checked{% endif %}>
+                                        <label class="form-check-label" for="retakeCourse">
+                                            重修成绩
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 备注 -->
+                        <div class="mb-4">
+                            <label class="form-label">备注信息</label>
+                            <textarea class="form-control" name="note" id="note" 
+                                      rows="3" placeholder="可填写考试情况、特殊说明等信息">{{ grade.note or '' }}</textarea>
+                            <div class="form-text">最多500个字符</div>
+                        </div>
+
+                        <!-- 表单操作按钮 -->
+                        <div class="d-flex justify-content-between align-items-center pt-4 border-top">
+                            <div>
+                                <button type="button" class="btn btn-outline-danger" 
+                                        onclick="showDeleteConfirm()">
+                                    <i class="fas fa-trash me-1"></i>删除成绩
+                                </button>
+                            </div>
+                            <div>
+                                <button type="reset" class="btn btn-outline-secondary me-2">
+                                    <i class="fas fa-redo me-1"></i>重置
+                                </button>
+                                <button type="submit" class="btn btn-warning btn-lg">
+                                    <i class="fas fa-save me-1"></i>保存修改
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 操作记录 -->
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="fas fa-history me-2"></i>操作记录
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <small class="text-muted d-block mb-1">创建时间</small>
+                            <span class="fw-bold">{{ grade.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block mb-1">最后更新</small>
+                            <span class="fw-bold">{{ grade.updated_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>确认删除
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>您确定要删除 <strong>{{ student.name }}</strong> 的 
+                   <strong>{{ grade.course.course_name }}</strong> 成绩记录吗？</p>
+                <div class="alert alert-danger small">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    此操作不可恢复！学生的课程成绩将被永久删除。
+                </div>
+                <p class="text-muted small mb-0">
+                    成绩信息：{{ grade.score }}分 ({{ grade.grade_level }}等级)
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <form method="POST" action="{{ url_for('main.delete_grade', grade_id=grade.id) }}" 
+                      style="display: inline;">
+                    <button type="submit" class="btn btn-danger">确认删除</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 根据分数计算等级和绩点
+function calculateGradeLevel(score) {
+    if (score >= 90) return { level: 'A (优秀)', point: 4.0, color: 'text-success' };
+    if (score >= 80) return { level: 'B (良好)', point: 3.0, color: 'text-primary' };
+    if (score >= 70) return { level: 'C (中等)', point: 2.0, color: 'text-info' };
+    if (score >= 60) return { level: 'D (及格)', point: 1.0, color: 'text-warning' };
+    return { level: 'F (不及格)', point: 0.0, color: 'text-danger' };
+}
+
+// 更新等级和绩点显示
+function updateGradeDisplay() {
+    const scoreInput = document.getElementById('score');
+    const gradeLevelDisplay = document.getElementById('gradeLevelDisplay');
+    const gradePointDisplay = document.getElementById('gradePointDisplay');
+    
+    if (scoreInput.value.trim() !== '') {
+        const score = parseFloat(scoreInput.value);
+        if (!isNaN(score) && score >= 0 && score <= 100) {
+            const result = calculateGradeLevel(score);
+            gradeLevelDisplay.textContent = result.level;
+            gradeLevelDisplay.className = `fw-bold fs-4 ${result.color}`;
+            gradePointDisplay.textContent = result.point.toFixed(1);
+            gradePointDisplay.className = `fw-bold fs-3 ${result.color}`;
+            return;
+        }
+    }
+    
+    // 默认显示
+    gradeLevelDisplay.textContent = '{{ grade.grade_level }}';
+    gradeLevelDisplay.className = 'fw-bold fs-4 text-muted';
+    gradePointDisplay.textContent = '{{ grade.grade_point }}';
+    gradePointDisplay.className = 'fw-bold fs-3 text-muted';
+}
+
+// 显示删除确认模态框
+function showDeleteConfirm() {
+    const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    modal.show();
+}
+
+// 页面初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 绑定分数输入事件
+    const scoreInput = document.getElementById('score');
+    if (scoreInput) {
+        scoreInput.addEventListener('input', updateGradeDisplay);
+        scoreInput.addEventListener('change', updateGradeDisplay);
+    }
+    
+    // 初始化显示
+    updateGradeDisplay();
+    
+    // 表单验证
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(event) {
+        const scoreField = document.getElementById('score');
+        if (scoreField && scoreField.value.trim()) {
+            const score = parseFloat(scoreField.value);
+            if (isNaN(score) || score < 0 || score > 100) {
+                event.preventDefault();
+                alert('请输入0-100之间的有效分数！');
+                scoreField.focus();
+                return false;
+            }
+        }
+        return true;
+    });
+    
+    // 键盘快捷键
+    document.addEventListener('keydown', function(event) {
+        // Ctrl + S 保存
+        if (event.ctrlKey && event.key === 's') {
+            event.preventDefault();
+            form.submit();
+        }
+        // Esc 返回
+        if (event.key === 'Escape') {
+            window.location.href = "{{ url_for('main.student_detail', student_id=student.id) }}";
+        }
+    });
+});
+</script>
+
+<style>
+/* 自定义样式 */
+.input-group-lg .form-control,
+.input-group-lg .input-group-text {
+    height: calc(3.5rem + 2px);
+    font-size: 1.25rem;
+}
+
+.card.border-warning .card-header {
+    border-bottom: 2px solid #ffc107;
+}
+
+/* 成绩等级颜色 */
+.text-success { color: #198754 !important; }
+.text-primary { color: #0d6efd !important; }
+.text-info { color: #0dcaf0 !important; }
+.text-warning { color: #ffc107 !important; }
+.text-danger { color: #dc3545 !important; }
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .input-group-lg .form-control,
+    .input-group-lg .input-group-text {
+        height: calc(2.875rem + 2px);
+        font-size: 1rem;
+    }
+}
+</style>
+{% endblock %}

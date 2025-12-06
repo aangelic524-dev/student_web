@@ -1,0 +1,1175 @@
+<!-- templates/bulk_operations.html -->
+{% extends "base.html" %}
+
+{% block title %}批量操作 - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="h4 mb-0">
+                <i class="fas fa-tasks text-primary me-2"></i>批量操作
+            </h2>
+            <p class="text-muted small mb-0">批量管理学生和成绩数据</p>
+        </div>
+        <div>
+            <a href="{{ url_for('main.student_list') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i>返回学生列表
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 批量操作选项 -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cog me-2"></i>操作选项
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- 操作类型选择 -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">选择操作类型</label>
+                        <div class="list-group" id="operationList">
+                            <button type="button" class="list-group-item list-group-item-action active" 
+                                    data-operation="import">
+                                <i class="fas fa-file-import me-2 text-primary"></i>
+                                <div>
+                                    <div class="fw-bold">批量导入</div>
+                                    <small class="text-muted">从Excel/CSV文件导入学生和成绩</small>
+                                </div>
+                            </button>
+                            <button type="button" class="list-group-item list-group-item-action" 
+                                    data-operation="export">
+                                <i class="fas fa-file-export me-2 text-success"></i>
+                                <div>
+                                    <div class="fw-bold">批量导出</div>
+                                    <small class="text-muted">导出学生和成绩数据到文件</small>
+                                </div>
+                            </button>
+                            <button type="button" class="list-group-item list-group-item-action" 
+                                    data-operation="delete">
+                                <i class="fas fa-trash-alt me-2 text-danger"></i>
+                                <div>
+                                    <div class="fw-bold">批量删除</div>
+                                    <small class="text-muted">删除选中的学生或成绩</small>
+                                </div>
+                            </button>
+                            <button type="button" class="list-group-item list-group-item-action" 
+                                    data-operation="update">
+                                <i class="fas fa-sync-alt me-2 text-warning"></i>
+                                <div>
+                                    <div class="fw-bold">批量更新</div>
+                                    <small class="text-muted">批量更新学生信息或成绩</small>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 操作指引 -->
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading mb-2">
+                            <i class="fas fa-info-circle me-2"></i>使用说明
+                        </h6>
+                        <ul class="mb-0 small">
+                            <li>选择左侧的操作类型</li>
+                            <li>根据提示完成操作步骤</li>
+                            <li>批量操作可能会影响大量数据，请谨慎操作</li>
+                            <li>建议在操作前先导出备份数据</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作内容区域 -->
+        <div class="col-lg-8">
+            <!-- 批量导入面板 -->
+            <div class="card shadow mb-4 operation-panel" id="importPanel">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-import me-2"></i>批量导入数据
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('main.bulk_import') }}" 
+                          enctype="multipart/form-data" id="importForm">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label">选择文件类型</label>
+                                <select class="form-select" name="file_type" id="fileType">
+                                    <option value="excel">Excel文件 (.xlsx, .xls)</option>
+                                    <option value="csv">CSV文件 (.csv)</option>
+                                    <option value="json">JSON文件 (.json)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">数据内容</label>
+                                <select class="form-select" name="data_type" id="dataType">
+                                    <option value="students">学生信息</option>
+                                    <option value="grades">成绩信息</option>
+                                    <option value="both">学生和成绩信息</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 文件上传 -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                选择文件 <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <input type="file" class="form-control" name="file" 
+                                       id="importFile" accept=".xlsx,.xls,.csv,.json" required>
+                                <button class="btn btn-outline-secondary" type="button" 
+                                        onclick="document.getElementById('importFile').value=''">
+                                    清除
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                支持的文件格式：Excel (.xlsx, .xls), CSV (.csv), JSON (.json)
+                                最大文件大小：16MB
+                            </div>
+                        </div>
+
+                        <!-- 导入选项 -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">导入选项</label>
+                            <div class="border rounded p-3">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="skip_duplicates" id="skipDuplicates" checked>
+                                    <label class="form-check-label" for="skipDuplicates">
+                                        跳过重复记录（学号/课程相同的记录）
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="create_missing" id="createMissing">
+                                    <label class="form-check-label" for="createMissing">
+                                        自动创建不存在的课程（仅成绩导入）
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="notify_complete" id="notifyComplete" checked>
+                                    <label class="form-check-label" for="notifyComplete">
+                                        完成后发送通知（显示操作结果）
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 预览区域 -->
+                        <div class="mb-4" id="previewArea" style="display: none;">
+                            <label class="form-label fw-bold">数据预览</label>
+                            <div class="border rounded p-3">
+                                <div class="table-responsive" style="max-height: 300px;">
+                                    <table class="table table-sm table-bordered" id="previewTable">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>学号</th>
+                                                <th>姓名</th>
+                                                <th>班级</th>
+                                                <th>课程</th>
+                                                <th>成绩</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="previewBody">
+                                            <!-- 预览数据将通过JavaScript动态加载 -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="mt-2 text-muted small" id="previewInfo">
+                                    共 <span id="previewCount">0</span> 条记录
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 操作按钮 -->
+                        <div class="d-flex justify-content-between pt-3 border-top">
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary" 
+                                        onclick="resetImportForm()">
+                                    <i class="fas fa-redo me-1"></i>重置
+                                </button>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-info me-2" 
+                                        id="previewBtn" disabled>
+                                    <i class="fas fa-eye me-1"></i>预览数据
+                                </button>
+                                <button type="submit" class="btn btn-primary" id="importBtn" disabled>
+                                    <i class="fas fa-upload me-1"></i>开始导入
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 批量导出面板 -->
+            <div class="card shadow mb-4 operation-panel" id="exportPanel" style="display: none;">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-export me-2"></i>批量导出数据
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('main.bulk_export') }}" id="exportForm">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label">导出格式</label>
+                                <select class="form-select" name="export_format" id="exportFormat">
+                                    <option value="excel">Excel文件 (.xlsx)</option>
+                                    <option value="csv">CSV文件 (.csv)</option>
+                                    <option value="json">JSON文件 (.json)</option>
+                                    <option value="pdf">PDF文件 (.pdf)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">导出内容</label>
+                                <select class="form-select" name="export_type" id="exportType">
+                                    <option value="students">学生信息</option>
+                                    <option value="grades">成绩信息</option>
+                                    <option value="both">学生和成绩信息</option>
+                                    <option value="statistics">统计报告</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 导出选项 -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">筛选条件</label>
+                            <div class="border rounded p-3">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label small">班级</label>
+                                        <select class="form-select form-select-sm" name="filter_class">
+                                            <option value="">所有班级</option>
+                                            {% for class in classes %}
+                                            <option value="{{ class }}">{{ class }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small">专业</label>
+                                        <select class="form-select form-select-sm" name="filter_major">
+                                            <option value="">所有专业</option>
+                                            {% for major in majors %}
+                                            <option value="{{ major }}">{{ major }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small">学期</label>
+                                        <input type="text" class="form-control form-control-sm" 
+                                               name="filter_semester" placeholder="如：第一学期">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small">学年</label>
+                                        <input type="text" class="form-control form-control-sm" 
+                                               name="filter_year" placeholder="如：2023-2024">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 数据范围 -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">数据范围</label>
+                            <div class="border rounded p-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" 
+                                           name="data_range" id="rangeAll" value="all" checked>
+                                    <label class="form-check-label" for="rangeAll">
+                                        导出所有数据
+                                        <small class="text-muted d-block">（系统内所有学生和成绩信息）</small>
+                                    </label>
+                                </div>
+                                <div class="form-check mt-3">
+                                    <input class="form-check-input" type="radio" 
+                                           name="data_range" id="rangeSelected" value="selected">
+                                    <label class="form-check-label" for="rangeSelected">
+                                        仅导出选中数据
+                                        <small class="text-muted d-block">（从学生列表中选择的学生）</small>
+                                    </label>
+                                </div>
+                                <div class="form-check mt-3">
+                                    <input class="form-check-input" type="radio" 
+                                           name="data_range" id="rangeCustom" value="custom">
+                                    <label class="form-check-label" for="rangeCustom">
+                                        自定义时间范围
+                                        <small class="text-muted d-block">（指定时间范围内的数据）</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 导出选项 -->
+                        <div class="mb-4">
+                            <div class="border rounded p-3">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="include_images" id="includeImages">
+                                    <label class="form-check-label" for="includeImages">
+                                        包含图表（如果可用）
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="format_numbers" id="formatNumbers" checked>
+                                    <label class="form-check-label" for="formatNumbers">
+                                        格式化数字（保留两位小数）
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="split_files" id="splitFiles">
+                                    <label class="form-check-label" for="splitFiles">
+                                        按类别分割文件（学生和成绩分开）
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 操作按钮 -->
+                        <div class="d-flex justify-content-between pt-3 border-top">
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary" 
+                                        onclick="resetExportForm()">
+                                    <i class="fas fa-redo me-1"></i>重置
+                                </button>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-info me-2" id="estimateBtn">
+                                    <i class="fas fa-calculator me-1"></i>估算数据量
+                                </button>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-download me-1"></i>开始导出
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 批量更新面板 -->
+            <div class="card shadow mb-4 operation-panel" id="updatePanel" style="display: none;">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-sync-alt me-2"></i>批量更新数据
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-info-circle me-2"></i>注意事项
+                        </h6>
+                        <p class="mb-0">
+                            批量更新将覆盖现有数据，请谨慎操作。建议在更新前先导出数据备份。
+                        </p>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('main.bulk_update') }}" 
+                          enctype="multipart/form-data" id="updateForm">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label">选择文件类型</label>
+                                <select class="form-select" name="file_type" id="updateFileType">
+                                    <option value="excel">Excel文件 (.xlsx, .xls)</option>
+                                    <option value="csv">CSV文件 (.csv)</option>
+                                    <option value="json">JSON文件 (.json)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">更新内容</label>
+                                <select class="form-select" name="data_type" id="updateDataType">
+                                    <option value="students">学生信息</option>
+                                    <option value="grades">成绩信息</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 文件上传 -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                选择更新文件 <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <input type="file" class="form-control" name="file" 
+                                       id="updateFile" accept=".xlsx,.xls,.csv,.json" required>
+                                <button class="btn btn-outline-secondary" type="button" 
+                                        onclick="document.getElementById('updateFile').value=''">
+                                    清除
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                支持的文件格式：Excel (.xlsx, .xls), CSV (.csv), JSON (.json)
+                                最大文件大小：16MB
+                            </div>
+                        </div>
+
+                        <!-- 更新选项 -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">更新选项</label>
+                            <div class="border rounded p-3">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="update_by_id" id="updateById" checked>
+                                    <label class="form-check-label" for="updateById">
+                                        按ID匹配更新记录（推荐）
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="only_non_empty" id="onlyNonEmpty">
+                                    <label class="form-check-label" for="onlyNonEmpty">
+                                        只更新非空字段
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="create_missing" id="updateCreateMissing">
+                                    <label class="form-check-label" for="updateCreateMissing">
+                                        自动创建不存在的记录
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 更新预览 -->
+                        <div class="mb-4" id="updatePreviewArea" style="display: none;">
+                            <label class="form-label fw-bold">更新预览</label>
+                            <div class="border rounded p-3">
+                                <div class="table-responsive" style="max-height: 300px;">
+                                    <table class="table table-sm table-bordered" id="updatePreviewTable">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>学号</th>
+                                                <th>姓名</th>
+                                                <th>班级</th>
+                                                <th>课程</th>
+                                                <th>成绩</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="updatePreviewBody">
+                                            <!-- 预览数据将通过JavaScript动态加载 -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="mt-2 text-muted small" id="updatePreviewInfo">
+                                    共 <span id="updatePreviewCount">0</span> 条记录
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 操作按钮 -->
+                        <div class="d-flex justify-content-between pt-3 border-top">
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary" 
+                                        onclick="resetUpdateForm()">
+                                    <i class="fas fa-redo me-1"></i>重置
+                                </button>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-info me-2" id="updatePreviewBtn" disabled>
+                                    <i class="fas fa-eye me-1"></i>预览
+                                </button>
+                                <button type="submit" class="btn btn-warning" id="updateBtn" disabled>
+                                    <i class="fas fa-sync-alt me-1"></i>开始更新
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 批量删除面板 -->
+            <div class="card shadow mb-4 operation-panel" id="deletePanel" style="display: none;">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-trash-alt me-2"></i>批量删除数据
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-exclamation-triangle me-2"></i>警告
+                        </h6>
+                        <p class="mb-0">
+                            批量删除操作不可恢复！请谨慎操作。建议在删除前先导出数据备份。
+                        </p>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('main.bulk_delete') }}" id="deleteForm">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label">删除类型</label>
+                                <select class="form-select" name="delete_type" id="deleteType">
+                                    <option value="students">学生信息（包含所有成绩）</option>
+                                    <option value="grades">成绩信息（保留学生）</option>
+                                    <option value="both">学生和成绩信息</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">删除条件</label>
+                                <select class="form-select" name="delete_condition" id="deleteCondition">
+                                    <option value="selected">删除选中的记录</option>
+                                    <option value="filtered">根据条件删除</option>
+                                    <option value="all">删除所有记录（危险！）</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 删除条件 -->
+                        <div class="mb-4" id="deleteFilterSection">
+                            <label class="form-label fw-bold">筛选条件</label>
+                            <div class="border rounded p-3">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label small">班级</label>
+                                        <select class="form-select form-select-sm" name="delete_class">
+                                            <option value="">所有班级</option>
+                                            {% for class in classes %}
+                                            <option value="{{ class }}">{{ class }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small">专业</label>
+                                        <select class="form-select form-select-sm" name="delete_major">
+                                            <option value="">所有专业</option>
+                                            {% for major in majors %}
+                                            <option value="{{ major }}">{{ major }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small">时间范围</label>
+                                        <input type="date" class="form-control form-control-sm" 
+                                               name="delete_date_from" placeholder="开始日期">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small">至</label>
+                                        <input type="date" class="form-control form-control-sm" 
+                                               name="delete_date_to" placeholder="结束日期">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 确认信息 -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">确认信息</label>
+                            <div class="border rounded p-3 bg-light">
+                                <p class="mb-2">请输入以下确认信息以继续删除操作：</p>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label small">确认短语</label>
+                                        <input type="text" class="form-control" 
+                                               name="confirm_phrase" 
+                                               placeholder="请输入 '确认删除'">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small">管理员密码</label>
+                                        <input type="password" class="form-control" 
+                                               name="admin_password" 
+                                               placeholder="请输入管理员密码">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 操作按钮 -->
+                        <div class="d-flex justify-content-between pt-3 border-top">
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary" 
+                                        onclick="resetDeleteForm()">
+                                    <i class="fas fa-redo me-1"></i>重置
+                                </button>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-warning me-2" id="checkDeleteBtn">
+                                    <i class="fas fa-search me-1"></i>检查影响范围
+                                </button>
+                                <button type="submit" class="btn btn-danger" id="deleteSubmitBtn" disabled>
+                                    <i class="fas fa-trash me-1"></i>确认删除
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="bulkDeleteConfirmModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>批量删除确认
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>警告：</strong>此操作将永久删除数据，无法恢复！
+                </div>
+                
+                <h6 class="mb-3">删除摘要</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>项目</th>
+                                <th class="text-center">数量</th>
+                                <th>说明</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deleteSummaryBody">
+                            <!-- 通过JavaScript动态填充 -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="confirmBackup">
+                        <label class="form-check-label" for="confirmBackup">
+                            我已备份所有重要数据
+                        </label>
+                    </div>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="confirmIrreversible">
+                        <label class="form-check-label" for="confirmIrreversible">
+                            我了解此操作不可恢复
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="finalDeleteBtn" disabled>
+                    <i class="fas fa-trash me-1"></i>确认执行删除
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 操作面板切换
+document.addEventListener('DOMContentLoaded', function() {
+    // 操作类型选择
+    const operationButtons = document.querySelectorAll('#operationList .list-group-item');
+    const operationPanels = document.querySelectorAll('.operation-panel');
+    
+    operationButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // 更新按钮状态
+            operationButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            
+            // 显示对应的面板
+            const operation = this.dataset.operation;
+            operationPanels.forEach(panel => {
+                panel.style.display = 'none';
+            });
+            document.getElementById(`${operation}Panel`).style.display = 'block';
+        });
+    });
+    
+    // 文件上传预览
+    const importFile = document.getElementById('importFile');
+    const previewBtn = document.getElementById('previewBtn');
+    const importBtn = document.getElementById('importBtn');
+    
+    if (importFile) {
+        importFile.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                previewBtn.disabled = false;
+                importBtn.disabled = false;
+            } else {
+                previewBtn.disabled = true;
+                importBtn.disabled = true;
+            }
+        });
+        
+        previewBtn.addEventListener('click', function() {
+            previewFileData();
+        });
+    }
+    
+    // 删除确认检查
+    const deleteCondition = document.getElementById('deleteCondition');
+    const deleteFilterSection = document.getElementById('deleteFilterSection');
+    const deleteSubmitBtn = document.getElementById('deleteSubmitBtn');
+    
+    if (deleteCondition) {
+        deleteCondition.addEventListener('change', function() {
+            if (this.value === 'filtered') {
+                deleteFilterSection.style.display = 'block';
+            } else {
+                deleteFilterSection.style.display = 'none';
+            }
+        });
+        
+        // 初始状态
+        if (deleteCondition.value === 'filtered') {
+            deleteFilterSection.style.display = 'block';
+        }
+    }
+    
+    // 确认删除按钮状态
+    const confirmPhrase = document.querySelector('input[name="confirm_phrase"]');
+    const adminPassword = document.querySelector('input[name="admin_password"]');
+    
+    function updateDeleteButtonState() {
+        if (confirmPhrase && adminPassword) {
+            const isPhraseCorrect = confirmPhrase.value === '确认删除';
+            const isPasswordFilled = adminPassword.value.length > 0;
+            deleteSubmitBtn.disabled = !(isPhraseCorrect && isPasswordFilled);
+        }
+    }
+    
+    if (confirmPhrase && adminPassword) {
+        confirmPhrase.addEventListener('input', updateDeleteButtonState);
+        adminPassword.addEventListener('input', updateDeleteButtonState);
+    }
+    
+    // 检查删除影响范围
+    const checkDeleteBtn = document.getElementById('checkDeleteBtn');
+    if (checkDeleteBtn) {
+        checkDeleteBtn.addEventListener('click', function() {
+            checkDeleteImpact();
+        });
+    }
+    
+    // 最终删除确认
+    const finalDeleteBtn = document.getElementById('finalDeleteBtn');
+    const confirmBackup = document.getElementById('confirmBackup');
+    const confirmIrreversible = document.getElementById('confirmIrreversible');
+    
+    if (confirmBackup && confirmIrreversible) {
+        function updateFinalDeleteButton() {
+            finalDeleteBtn.disabled = !(confirmBackup.checked && confirmIrreversible.checked);
+        }
+        
+        confirmBackup.addEventListener('change', updateFinalDeleteButton);
+        confirmIrreversible.addEventListener('change', updateFinalDeleteButton);
+    }
+    
+    if (finalDeleteBtn) {
+        finalDeleteBtn.addEventListener('click', function() {
+            document.getElementById('deleteForm').submit();
+        });
+    }
+});
+
+// 预览文件数据
+function previewFileData() {
+    const fileInput = document.getElementById('importFile');
+    const previewArea = document.getElementById('previewArea');
+    const previewBody = document.getElementById('previewBody');
+    const previewCount = document.getElementById('previewCount');
+    const fileType = document.getElementById('fileType').value;
+    
+    if (fileInput.files.length === 0) {
+        alert('请先选择文件');
+        return;
+    }
+    
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        let data = [];
+        
+        try {
+            if (fileType === 'json') {
+                data = JSON.parse(e.target.result);
+                if (!Array.isArray(data)) {
+                    data = [data];
+                }
+            } else if (fileType === 'csv') {
+                // 简化的CSV解析
+                const lines = e.target.result.split('\n');
+                const headers = lines[0].split(',');
+                data = lines.slice(1).filter(line => line.trim()).map(line => {
+                    const values = line.split(',');
+                    const obj = {};
+                    headers.forEach((header, index) => {
+                        obj[header.trim()] = values[index] ? values[index].trim() : '';
+                    });
+                    return obj;
+                });
+            } else {
+                // Excel文件预览需要更复杂的处理，这里简化
+                data = [
+                    {学号: '20230001', 姓名: '示例学生1', 班级: '计算机1班', 课程: '高等数学', 成绩: '85'},
+                    {学号: '20230002', 姓名: '示例学生2', 班级: '计算机1班', 课程: '高等数学', 成绩: '92'},
+                    {学号: '20230003', 姓名: '示例学生3', 班级: '计算机2班', 课程: '高等数学', 成绩: '78'}
+                ];
+            }
+            
+            // 显示预览数据
+            previewBody.innerHTML = '';
+            data.slice(0, 10).forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${row.学号 || row.student_id || ''}</td>
+                    <td>${row.姓名 || row.name || ''}</td>
+                    <td>${row.班级 || row.class_name || ''}</td>
+                    <td>${row.课程 || row.course || ''}</td>
+                    <td>${row.成绩 || row.score || ''}</td>
+                `;
+                previewBody.appendChild(tr);
+            });
+            
+            previewCount.textContent = data.length;
+            previewArea.style.display = 'block';
+            
+            // 滚动到预览区域
+            previewArea.scrollIntoView({ behavior: 'smooth' });
+            
+        } catch (error) {
+            alert('文件解析失败：' + error.message);
+            console.error('文件解析错误:', error);
+        }
+    };
+    
+    reader.onerror = function() {
+        alert('文件读取失败');
+    };
+    
+    reader.readAsText(file);
+}
+
+// 检查删除影响范围
+function checkDeleteImpact() {
+    const deleteType = document.getElementById('deleteType').value;
+    const deleteCondition = document.getElementById('deleteCondition').value;
+    
+    // 模拟获取数据
+    const summaryData = {
+        'students': { count: 15, description: '学生记录（包含所有相关成绩）' },
+        'grades': { count: 45, description: '成绩记录' },
+        'both': { count: 60, description: '学生和成绩记录总数' }
+    };
+    
+    const summaryBody = document.getElementById('deleteSummaryBody');
+    const data = summaryData[deleteType] || summaryData.students;
+    
+    summaryBody.innerHTML = `
+        <tr>
+            <td>${data.description}</td>
+            <td class="text-center fw-bold text-danger">${data.count}</td>
+            <td>将被永久删除</td>
+        </tr>
+        <tr>
+            <td>影响范围</td>
+            <td class="text-center">-</td>
+            <td>${deleteCondition === 'all' ? '所有数据' : '符合条件的记录'}</td>
+        </tr>
+        <tr>
+            <td>操作类型</td>
+            <td class="text-center">-</td>
+            <td>批量删除</td>
+        </tr>
+    `;
+    
+    // 显示确认模态框
+    const modal = new bootstrap.Modal(document.getElementById('bulkDeleteConfirmModal'));
+    modal.show();
+}
+
+// 表单重置函数
+function resetImportForm() {
+    document.getElementById('importForm').reset();
+    document.getElementById('importBtn').disabled = true;
+    document.getElementById('previewBtn').disabled = true;
+    document.getElementById('previewArea').style.display = 'none';
+}
+
+function resetExportForm() {
+    document.getElementById('exportForm').reset();
+}
+
+function resetDeleteForm() {
+    document.getElementById('deleteForm').reset();
+    document.getElementById('deleteSubmitBtn').disabled = true;
+}
+
+function resetUpdateForm() {
+    document.getElementById('updateForm').reset();
+    document.getElementById('updateBtn').disabled = true;
+    document.getElementById('updatePreviewBtn').disabled = true;
+    document.getElementById('updatePreviewArea').style.display = 'none';
+}
+
+// 导出数据量估算
+document.getElementById('estimateBtn')?.addEventListener('click', function() {
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>正在估算...';
+    btn.disabled = true;
+    
+    // 收集表单数据
+    const formData = new FormData(document.getElementById('exportForm'));
+    
+    // 发送AJAX请求
+    fetch('{{ url_for('main.estimate_export_size') }}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        
+        if (data.success) {
+            // 创建模态框显示结果
+            const modalHtml = `
+                <div class="modal fade" id="estimateModal" tabindex="-1" aria-labelledby="estimateModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header bg-info text-white">
+                                <h5 class="modal-title" id="estimateModalLabel">
+                                    <i class="fas fa-calculator me-2"></i>数据量估算结果
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <div class="alert alert-info" role="alert">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            根据您选择的筛选条件，预计导出数据量如下：
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="card border-info h-100">
+                                            <div class="card-body text-center">
+                                                <h6 class="card-subtitle mb-2 text-muted">记录数量</h6>
+                                                <h3 class="card-title text-info">${data.count}</h3>
+                                                <p class="card-text">${data.description}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="card border-success h-100">
+                                            <div class="card-body text-center">
+                                                <h6 class="card-subtitle mb-2 text-muted">预计文件大小</h6>
+                                                <h3 class="card-title text-success">${data.estimated_size}</h3>
+                                                <p class="card-text">${data.export_type === 'excel' ? 'Excel格式' : '文本格式'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="alert alert-warning" role="alert">
+                                            <i class="fas fa-lightbulb me-2"></i>
+                                            <strong>提示：</strong>
+                                            ${data.count > 1000 ? '数据量较大，导出可能需要一些时间，请耐心等待。' : '数据量适中，导出过程将很快完成。'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                                <button type="button" class="btn btn-primary" onclick="document.getElementById('exportForm').submit()">
+                                    <i class="fas fa-download me-1"></i>开始导出
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // 移除已存在的模态框
+            const existingModal = document.getElementById('estimateModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // 添加新模态框
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // 显示模态框
+            const modal = new bootstrap.Modal(document.getElementById('estimateModal'));
+            modal.show();
+        } else {
+            alert('估算失败：' + data.error);
+        }
+    })
+    .catch(error => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        alert('估算请求失败：' + error.message);
+        console.error('估算请求错误:', error);
+    });
+});
+
+// 删除表单提交前确认
+document.getElementById('deleteForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    checkDeleteImpact();
+});
+
+// 批量更新文件上传处理
+document.getElementById('updateFile')?.addEventListener('change', function() {
+    const updatePreviewBtn = document.getElementById('updatePreviewBtn');
+    const updateBtn = document.getElementById('updateBtn');
+    
+    if (this.files.length > 0) {
+        updatePreviewBtn.disabled = false;
+        updateBtn.disabled = true;
+    } else {
+        updatePreviewBtn.disabled = true;
+        updateBtn.disabled = true;
+    }
+});
+
+// 批量更新预览按钮处理
+document.getElementById('updatePreviewBtn')?.addEventListener('click', function() {
+    const updateFileInput = document.getElementById('updateFile');
+    const updatePreviewArea = document.getElementById('updatePreviewArea');
+    const updatePreviewBody = document.getElementById('updatePreviewBody');
+    const updatePreviewCount = document.getElementById('updatePreviewCount');
+    const updateBtn = document.getElementById('updateBtn');
+    
+    if (updateFileInput.files.length === 0) {
+        alert('请先选择文件');
+        return;
+    }
+    
+    const file = updateFileInput.files[0];
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        let data = [];
+        
+        try {
+            // 简单的文件预览，实际项目中可以根据文件类型进行更复杂的解析
+            const fileType = document.getElementById('updateFileType').value;
+            
+            // 这里只做基本的JSON解析预览，实际项目中需要根据文件类型使用不同的解析方法
+            if (fileType === 'json') {
+                data = JSON.parse(e.target.result);
+                if (!Array.isArray(data)) {
+                    data = [data];
+                }
+            } else {
+                // CSV和Excel文件的预览需要更复杂的解析逻辑
+                // 这里简化处理，显示文件内容预览
+                data = [{ preview: 'CSV/Excel文件预览功能开发中...' }];
+            }
+            
+            // 显示预览数据
+            updatePreviewBody.innerHTML = '';
+            data.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${row.student_id || row.id || ''}</td>
+                    <td>${row.name || ''}</td>
+                    <td>${row.class || row.class_name || ''}</td>
+                    <td>${row.course || row.course_id || ''}</td>
+                    <td>${row.score || row.grade || ''}</td>
+                `;
+                updatePreviewBody.appendChild(tr);
+            });
+            
+            updatePreviewCount.textContent = data.length;
+            updatePreviewArea.style.display = 'block';
+            updateBtn.disabled = false;
+            
+        } catch (error) {
+            alert('文件解析失败: ' + error.message);
+        }
+    };
+    
+    reader.readAsText(file);
+});
+</script>
+
+<style>
+/* 自定义样式 */
+.list-group-item.active {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+}
+
+.list-group-item {
+    border-left: none;
+    border-right: none;
+    border-radius: 0 !important;
+    cursor: pointer;
+}
+
+.list-group-item:first-child {
+    border-top: none;
+}
+
+.operation-panel {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 预览表格样式 */
+#previewTable {
+    font-size: 0.875rem;
+}
+
+#previewTable thead th {
+    position: sticky;
+    top: 0;
+    background-color: #f8f9fa;
+    z-index: 1;
+}
+
+/* 表单控件样式 */
+.form-select:focus, .form-control:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* 按钮样式 */
+.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .list-group-item {
+        padding: 1rem 0.75rem;
+    }
+    
+    .btn-lg {
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+    }
+}
+</style>
+{% endblock %}
