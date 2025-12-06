@@ -13,3 +13,4 @@ Werkzeug==2.3.7
 email-validator
 openpyxl
 setuptools
+flask-login
