@@ -160,6 +160,56 @@
         </div>
     </div>
 </div>
+</div>
+
+<!-- Quick Operations -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-bolt"></i> Quick Operations
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('main.add_student') }}" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-user-plus fa-2x mb-2"></i><br>
+                            Add Student
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('main.query') }}" class="btn btn-success btn-lg w-100">
+                            <i class="fas fa-search fa-2x mb-2"></i><br>
+                            Query Grades
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('main.statistics') }}" class="btn btn-info btn-lg w-100">
+                            <i class="fas fa-chart-bar fa-2x mb-2"></i><br>
+                            View Statistics
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('main.export_students') }}" class="btn btn-warning btn-lg w-100">
+                            <i class="fas fa-file-export fa-2x mb-2"></i><br>
+                            Export Data
+                        </a>
+                    </div>
+                    {% if current_user.is_admin %}
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('main.download_logs') }}" class="btn btn-danger btn-lg w-100">
+                            <i class="fas fa-file-download fa-2x mb-2"></i><br>
+                            Download Logs
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}

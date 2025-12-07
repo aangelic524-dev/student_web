@@ -18,9 +18,55 @@ from database import db, User, Student, Course, Grade, init_db
 from auth import auth_bp
 from forms import *
 
+# 导入日志模块
+import logging
+from logging.handlers import RotatingFileHandler
+
 # 初始化应用
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# ==== 配置日志功能 ====
+# 确保日志文件夹存在
+log_folder = 'logs'
+os.makedirs(log_folder, exist_ok=True)
+
+# 设置日志文件路径
+log_file = os.path.join(log_folder, 'app.log')
+
+# 配置日志记录器
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger('flask_app')
+
+# 创建文件处理器，设置日志级别为INFO
+file_handler = RotatingFileHandler(log_file, maxBytes=10*1024*1024, backupCount=5, encoding='utf-8')
+file_handler.setLevel(logging.INFO)
+
+# 创建控制台处理器，设置日志级别为DEBUG
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.DEBUG)
+
+# 设置日志格式
+log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(log_formatter)
+console_handler.setFormatter(log_formatter)
+
+# 清除现有处理器
+if logger.hasHandlers():
+    logger.handlers.clear()
+
+# 添加处理器到记录器
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)
+
+# 将记录器添加到Flask应用
+app.logger.addHandler(file_handler)
+app.logger.addHandler(console_handler)
+app.logger.setLevel(logging.INFO)
+
+# 记录应用启动信息
+app.logger.info('Flask应用启动')
+# ==== 日志功能配置结束 ====
 
 # ==== 新增：模板上下文处理器 ====
 from datetime import datetime
@@ -106,6 +152,61 @@ def dashboard():
                          recent_students=recent_students,
                          graded_courses=graded_courses,
                          chart_data=chart_data)
+
+@main_bp.route('/switch_language')
+@login_required
+def switch_language():
+    """语言切换功能"""
+    # 获取当前请求的URL
+    current_url = request.referrer or url_for('main.dashboard')
+    
+    # 切换语言
+    if '_en' in current_url:
+        # 从英文切换到中文
+        new_url = current_url.replace('_en', '')
+    else:
+        # 从中文切换到英文
+        # 检查URL中是否已经有参数
+        if '?' in current_url:
+            new_url = current_url.replace('?', '_en?')
+        else:
+            # 检查URL是否以/结尾
+            if current_url.endswith('/'):
+                new_url = current_url[:-1] + '_en/'
+            else:
+                new_url = current_url + '_en'
+    
+    # 记录语言切换操作
+    app.logger.info(f'用户 {current_user.username} 切换语言: {current_url} -> {new_url}')
+    
+    # 重定向到新的URL
+    return redirect(new_url)
+
+@main_bp.route('/download_logs')
+@login_required
+def download_logs():
+    """下载日志文件"""
+    # 检查用户是否为管理员（可选，根据需求调整）
+    if not current_user.is_admin:
+        app.logger.warning(f'用户 {current_user.username} 尝试下载日志文件，但没有管理员权限')
+        flash('您没有权限下载日志文件', 'danger')
+        return redirect(url_for('main.dashboard'))
+    
+    # 设置日志文件路径
+    log_folder = 'logs'
+    log_file = os.path.join(log_folder, 'app.log')
+    
+    # 检查日志文件是否存在
+    if not os.path.exists(log_file):
+        app.logger.error(f'尝试下载日志文件失败: 文件 {log_file} 不存在')
+        flash('日志文件不存在', 'danger')
+        return redirect(url_for('main.dashboard'))
+    
+    # 记录日志下载操作
+    app.logger.info(f'管理员 {current_user.username} 下载了日志文件')
+    
+    # 发送日志文件
+    return send_file(log_file, as_attachment=True, download_name=f'app_logs_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
 
 @main_bp.route('/dashboard_en')
 @login_required
