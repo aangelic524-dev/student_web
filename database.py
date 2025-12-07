@@ -4,6 +4,36 @@ import bcrypt
 
 db = SQLAlchemy()
 
+# 新增：角色模型
+class Role(db.Model):
+    """角色模型"""
+    __tablename__ = 'roles'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False, index=True)  # 角色名称
+    description = db.Column(db.String(200))  # 角色描述
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    
+    # 关系
+    users = db.relationship('User', backref='role', lazy=True)
+    permissions = db.relationship('Permission', secondary='role_permissions', backref='roles', lazy=True)
+
+# 新增：权限模型
+class Permission(db.Model):
+    """权限模型"""
+    __tablename__ = 'permissions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False, index=True)  # 权限名称
+    description = db.Column(db.String(200))  # 权限描述
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+# 新增：角色-权限关联表
+role_permissions = db.Table('role_permissions',
+    db.Column('role_id', db.Integer, db.ForeignKey('roles.id'), primary_key=True),
+    db.Column('permission_id', db.Integer, db.ForeignKey('permissions.id'), primary_key=True)
+)
+
 class User(db.Model):
     """用户模型"""
     __tablename__ = 'users'
@@ -12,7 +42,7 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(128), nullable=False)
-    is_admin = db.Column(db.Boolean, default=False)
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), default=1)  # 默认角色ID
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     last_login = db.Column(db.DateTime)
@@ -39,6 +69,15 @@ class User(db.Model):
     @property
     def is_anonymous(self):
         return False
+    
+    @property
+    def is_admin(self):
+        """兼容性属性：检查用户是否为管理员角色"""
+        return self.role.name == 'admin' if self.role else False
+    
+    def has_permission(self, permission_name):
+        """检查用户是否具有特定权限"""
+        return any(perm.name == permission_name for perm in self.role.permissions) if self.role else False
     
 #    @property
 #    def is_active(self):
@@ -146,14 +185,101 @@ def init_db():
     """初始化数据库"""
     db.create_all()
     
+    # 创建默认权限
+    default_permissions = [
+        # 用户管理权限
+        {'name': 'view_users', 'description': '查看用户列表'},
+        {'name': 'edit_users', 'description': '编辑用户信息'},
+        {'name': 'delete_users', 'description': '删除用户'},
+        {'name': 'manage_roles', 'description': '管理角色'},
+        
+        # 学生管理权限
+        {'name': 'view_students', 'description': '查看学生列表'},
+        {'name': 'add_students', 'description': '添加学生'},
+        {'name': 'edit_students', 'description': '编辑学生信息'},
+        {'name': 'delete_students', 'description': '删除学生'},
+        
+        # 课程管理权限
+        {'name': 'view_courses', 'description': '查看课程列表'},
+        {'name': 'add_courses', 'description': '添加课程'},
+        {'name': 'edit_courses', 'description': '编辑课程信息'},
+        {'name': 'delete_courses', 'description': '删除课程'},
+        
+        # 成绩管理权限
+        {'name': 'view_grades', 'description': '查看成绩'},
+        {'name': 'add_grades', 'description': '添加成绩'},
+        {'name': 'edit_grades', 'description': '编辑成绩'},
+        {'name': 'delete_grades', 'description': '删除成绩'},
+        
+        # 日志管理权限
+        {'name': 'view_logs', 'description': '查看日志'},
+        {'name': 'download_logs', 'description': '下载日志'},
+        
+        # 系统管理权限
+        {'name': 'system_settings', 'description': '系统设置'},
+    ]
+    
+    permission_dict = {}
+    for perm_data in default_permissions:
+        perm = Permission.query.filter_by(name=perm_data['name']).first()
+        if not perm:
+            perm = Permission(**perm_data)
+            db.session.add(perm)
+        permission_dict[perm_data['name']] = perm
+    
+    # 创建默认角色
+    default_roles = [
+        {
+            'name': 'admin',
+            'description': '系统管理员，拥有所有权限',
+            'permissions': list(permission_dict.values())
+        },
+        {
+            'name': 'teacher',
+            'description': '教师角色，可管理学生和成绩',
+            'permissions': [
+                permission_dict['view_students'],
+                permission_dict['add_students'],
+                permission_dict['edit_students'],
+                permission_dict['view_courses'],
+                permission_dict['add_courses'],
+                permission_dict['edit_courses'],
+                permission_dict['view_grades'],
+                permission_dict['add_grades'],
+                permission_dict['edit_grades'],
+            ]
+        },
+        {
+            'name': 'user',
+            'description': '普通用户角色，可查看和管理自己的学生',
+            'permissions': [
+                permission_dict['view_students'],
+                permission_dict['add_students'],
+                permission_dict['edit_students'],
+                permission_dict['view_courses'],
+                permission_dict['view_grades'],
+            ]
+        },
+    ]
+    
+    role_dict = {}
+    for role_data in default_roles:
+        role = Role.query.filter_by(name=role_data['name']).first()
+        if not role:
+            role = Role(name=role_data['name'], description=role_data['description'])
+            db.session.add(role)
+        role.permissions = role_data['permissions']
+        role_dict[role_data['name']] = role
+    
     # 创建默认管理员用户
     if not User.query.filter_by(username='admin').first():
         admin = User(
             username='admin',
             email='admin@example.com',
-            is_admin=True
+            role=role_dict['admin']
         )
         admin.set_password('admin123')
+        
         db.session.add(admin)
         
         # 创建一些示例课程
@@ -167,6 +293,6 @@ def init_db():
         
         for course in courses:
             db.session.add(course)
-        
-        db.session.commit()
-        print("数据库已初始化，管理员账号: admin, 密码: admin123")
+    
+    db.session.commit()
+    print("数据库已初始化，管理员账号: admin, 密码: admin123")

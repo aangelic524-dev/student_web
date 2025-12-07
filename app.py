@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, send_file, Blueprint
 from flask_login import LoginManager, current_user, login_required
 from flask_bootstrap import Bootstrap
+from functools import wraps
 import os
 from datetime import datetime, timezone
 import json
@@ -14,7 +15,7 @@ matplotlib.use('Agg')  # 使用非GUI后端
 
 # 导入配置和模块
 from config import Config
-from database import db, User, Student, Course, Grade, init_db
+from database import db, User, Student, Course, Grade, init_db, Role, Permission
 from auth import auth_bp
 from forms import *
 
@@ -35,19 +36,33 @@ os.makedirs(log_folder, exist_ok=True)
 log_file = os.path.join(log_folder, 'app.log')
 
 # 配置日志记录器
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('flask_app')
 
-# 创建文件处理器，设置日志级别为INFO
+# 创建文件处理器，设置日志级别为DEBUG
 file_handler = RotatingFileHandler(log_file, maxBytes=10*1024*1024, backupCount=5, encoding='utf-8')
-file_handler.setLevel(logging.INFO)
+file_handler.setLevel(logging.DEBUG)
 
 # 创建控制台处理器，设置日志级别为DEBUG
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.DEBUG)
 
-# 设置日志格式
-log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# 设置详细的日志格式，包含用户ID、IP地址等信息
+class DetailedFormatter(logging.Formatter):
+    def format(self, record):
+        # 添加用户信息（如果有）
+        if hasattr(record, 'user_id'):
+            record.user_id = record.user_id
+        else:
+            record.user_id = 'anonymous'
+        # 添加IP地址（如果有）
+        if hasattr(record, 'ip'):
+            record.ip = record.ip
+        else:
+            record.ip = 'unknown'
+        return super().format(record)
+
+log_formatter = DetailedFormatter('%(asctime)s - %(name)s - %(levelname)s - [User: %(user_id)s, IP: %(ip)s] - %(message)s')
 file_handler.setFormatter(log_formatter)
 console_handler.setFormatter(log_formatter)
 
@@ -66,6 +81,34 @@ app.logger.setLevel(logging.INFO)
 
 # 记录应用启动信息
 app.logger.info('Flask应用启动')
+
+# 新增：权限检查装饰器
+def permission_required(permission_name):
+    """检查用户是否具有特定权限的装饰器"""
+    def decorator(f):
+        @wraps(f)
+        @login_required
+        def decorated_function(*args, **kwargs):
+            if not current_user.has_permission(permission_name):
+                flash('您没有执行此操作的权限', 'danger')
+                return redirect(url_for('main.dashboard'))
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+# 添加请求钩子，记录用户ID和IP地址
+@app.before_request
+def log_request_info():
+    """在每个请求前记录用户ID和IP地址"""
+    if hasattr(request, 'remote_addr'):
+        app.logger.debug(f'请求: {request.method} {request.path}，IP: {request.remote_addr}')
+    
+    # 将用户ID和IP地址添加到日志记录器的上下文中
+    if current_user.is_authenticated:
+        app.logger.user_id = current_user.username
+    else:
+        app.logger.user_id = 'anonymous'
+    app.logger.ip = request.remote_addr if hasattr(request, 'remote_addr') else 'unknown'
 # ==== 日志功能配置结束 ====
 
 # ==== 新增：模板上下文处理器 ====
@@ -182,15 +225,44 @@ def switch_language():
     # 重定向到新的URL
     return redirect(new_url)
 
+@main_bp.route('/view_logs')
+@permission_required('view_logs')
+def view_logs():
+    """在线查看日志文件"""
+    
+    # 设置日志文件路径
+    log_folder = 'logs'
+    log_file = os.path.join(log_folder, 'app.log')
+    
+    # 检查日志文件是否存在
+    if not os.path.exists(log_file):
+        app.logger.error(f'尝试查看日志文件失败: 文件 {log_file} 不存在')
+        flash('日志文件不存在', 'danger')
+        return redirect(url_for('main.dashboard'))
+    
+    # 读取日志文件内容
+    try:
+        with open(log_file, 'r', encoding='utf-8') as f:
+            log_content = f.read()
+        # 按行分割日志
+        log_lines = log_content.splitlines()
+        # 倒序排列，最新的日志显示在最前面
+        log_lines.reverse()
+    except Exception as e:
+        app.logger.error(f'读取日志文件失败: {str(e)}')
+        flash(f'读取日志文件失败: {str(e)}', 'danger')
+        return redirect(url_for('main.dashboard'))
+    
+    # 记录日志查看操作
+    app.logger.info(f'管理员 {current_user.username} 查看了日志文件')
+    
+    # 渲染日志查看页面
+    return render_template('view_logs.html', title='日志查看', log_lines=log_lines)
+
 @main_bp.route('/download_logs')
-@login_required
+@permission_required('download_logs')
 def download_logs():
     """下载日志文件"""
-    # 检查用户是否为管理员（可选，根据需求调整）
-    if not current_user.is_admin:
-        app.logger.warning(f'用户 {current_user.username} 尝试下载日志文件，但没有管理员权限')
-        flash('您没有权限下载日志文件', 'danger')
-        return redirect(url_for('main.dashboard'))
     
     # 设置日志文件路径
     log_folder = 'logs'
@@ -207,6 +279,81 @@ def download_logs():
     
     # 发送日志文件
     return send_file(log_file, as_attachment=True, download_name=f'app_logs_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
+
+# 新增：角色管理路由
+@main_bp.route('/roles')
+@permission_required('manage_roles')
+def roles():
+    """角色列表"""
+    roles = Role.query.order_by(Role.id).all()
+    return render_template('roles.html', roles=roles)
+
+@main_bp.route('/roles/add', methods=['GET', 'POST'])
+@permission_required('manage_roles')
+def add_role():
+    """添加角色"""
+    if request.method == 'POST':
+        name = request.form['name']
+        description = request.form['description']
+        
+        # 检查角色名称是否已存在
+        if Role.query.filter_by(name=name).first():
+            flash('角色名称已存在', 'danger')
+            return redirect(url_for('main.add_role'))
+        
+        # 创建新角色
+        role = Role(name=name, description=description)
+        db.session.add(role)
+        db.session.commit()
+        
+        flash('角色添加成功', 'success')
+        return redirect(url_for('main.roles'))
+    
+    permissions = Permission.query.order_by(Permission.id).all()
+    return render_template('add_role.html', permissions=permissions)
+
+@main_bp.route('/roles/edit/<int:role_id>', methods=['GET', 'POST'])
+@permission_required('manage_roles')
+def edit_role(role_id):
+    """编辑角色"""
+    role = Role.query.get_or_404(role_id)
+    
+    if request.method == 'POST':
+        role.name = request.form['name']
+        role.description = request.form['description']
+        
+        # 更新权限
+        permission_ids = request.form.getlist('permissions')
+        role.permissions = Permission.query.filter(Permission.id.in_(permission_ids)).all()
+        
+        db.session.commit()
+        flash('角色编辑成功', 'success')
+        return redirect(url_for('main.roles'))
+    
+    permissions = Permission.query.order_by(Permission.id).all()
+    role_permission_ids = [p.id for p in role.permissions]
+    return render_template('edit_role.html', role=role, permissions=permissions, role_permission_ids=role_permission_ids)
+
+@main_bp.route('/roles/delete/<int:role_id>')
+@permission_required('manage_roles')
+def delete_role(role_id):
+    """删除角色"""
+    role = Role.query.get_or_404(role_id)
+    
+    # 不能删除默认角色
+    if role.name in ['admin', 'teacher', 'user']:
+        flash('不能删除系统默认角色', 'danger')
+        return redirect(url_for('main.roles'))
+    
+    # 检查是否有用户使用该角色
+    if role.users:
+        flash('该角色已被使用，不能删除', 'danger')
+        return redirect(url_for('main.roles'))
+    
+    db.session.delete(role)
+    db.session.commit()
+    flash('角色删除成功', 'success')
+    return redirect(url_for('main.roles'))
 
 @main_bp.route('/dashboard_en')
 @login_required

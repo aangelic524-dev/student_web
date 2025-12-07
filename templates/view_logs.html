@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">
+        <i class="fas fa-file-alt"></i> 日志查看
+    </h1>
+    
+    <!-- 操作按钮 -->
+    <div class="mb-4">
+        <a href="{{ url_for('main.download_logs') }}" class="btn btn-primary">
+            <i class="fas fa-download"></i> 下载日志
+        </a>
+        <button onclick="copyLogs()" class="btn btn-secondary">
+            <i class="fas fa-copy"></i> 复制日志
+        </button>
+        <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left"></i> 返回仪表板
+        </a>
+    </div>
+    
+    <!-- 日志内容 -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-list"></i> 日志记录
+            </h5>
+        </div>
+        <div class="card-body">
+            <pre id="log-content" class="bg-light p-3 rounded overflow-auto" style="max-height: 70vh; font-family: 'Consolas', 'Monaco', monospace; font-size: 12px;">
+{% if log_lines %}
+{% for line in log_lines %}
+{{ line }}
+{% endfor %}
+{% else %}
+日志内容为空
+{% endif %}
+            </pre>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyLogs() {
+    const logContent = document.getElementById('log-content');
+    const textArea = document.createElement('textarea');
+    textArea.value = logContent.textContent;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    alert('日志内容已复制到剪贴板');
+}
+</script>
+{% endblock %}
