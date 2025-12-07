@@ -68,6 +68,7 @@ function confirmStudentDelete(studentId, studentName) {
                             <th>姓名</th>
                             <th>性别</th>
                             <th>班级</th>
+                            <th>班级审核</th>
                             <th>专业</th>
                             <th>联系方式</th>
                             <th>入学日期</th>
@@ -99,6 +100,17 @@ function confirmStudentDelete(studentId, studentName) {
                                 {% endif %}
                             </td>
                             <td>{{ student.class_name or '未设置' }}</td>
+                            <td>
+                                {% if student.class_name %}
+                                    {% if student.class_approved %}
+                                        <span class="badge bg-success">已批准</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">待批准</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
                             <td>{{ student.major or '未设置' }}</td>
                             <td>
                                 {% if student.phone %}
@@ -124,6 +136,16 @@ function confirmStudentDelete(studentId, studentName) {
                                        class="btn btn-outline-success" title="添加成绩">
                                         <i class="fas fa-plus-circle"></i>
                                     </a>
+                                    <!-- 班级审核按钮，仅管理员可见 -->
+                                    {% if current_user.is_admin and student.class_name and not student.class_approved %}
+                                    <a href="{{ url_for('main.approve_class', student_id=student.id) }}" 
+                                       class="btn btn-outline-primary" 
+                                       onclick="return confirm('确定要批准该学生的班级分配吗？')"
+                                       title="批准班级">
+                                        <i class="fas fa-check-circle"></i>
+                                    </a>
+                                    {% endif %}
+                                    
                                     <button type="button" class="btn btn-outline-danger" 
                                             data-student-id="{{ student.id }}" 
                                             data-student-name="{{ student.name }}" 

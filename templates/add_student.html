@@ -104,6 +104,20 @@
                             </div>
                         </div>
 
+                        <!-- 班级批准字段，仅管理员可见 -->
+                        {% if current_user.is_admin %}
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <div class="form-check">
+                                    {{ form.class_approved(class="form-check-input", id="class_approved") }}
+                                    <label class="form-check-label" for="class_approved">
+                                        {{ form.class_approved.label.text }}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
                         <div class="row">
                             <!-- 联系方式 -->
                             <div class="col-md-6 mb-3">

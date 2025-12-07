@@ -99,6 +99,7 @@ class Student(db.Model):
     grade_level = db.Column(db.String(50))  # 年级
     department = db.Column(db.String(100))  # 院系
     class_name = db.Column(db.String(50))
+    class_approved = db.Column(db.Boolean, default=False)  # 班级分配审核状态
     major = db.Column(db.String(100))
     position = db.Column(db.String(50))  # 职位
     phone = db.Column(db.String(20))
@@ -237,14 +238,11 @@ def init_db():
         },
         {
             'name': 'teacher',
-            'description': '教师角色，可管理学生和成绩',
+            'description': '教师角色，可查看学生和课程，编辑学生信息，管理成绩',
             'permissions': [
                 permission_dict['view_students'],
-                permission_dict['add_students'],
                 permission_dict['edit_students'],
                 permission_dict['view_courses'],
-                permission_dict['add_courses'],
-                permission_dict['edit_courses'],
                 permission_dict['view_grades'],
                 permission_dict['add_grades'],
                 permission_dict['edit_grades'],
@@ -277,7 +275,8 @@ def init_db():
         admin = User(
             username='admin',
             email='admin@example.com',
-            role=role_dict['admin']
+            role=role_dict['admin'],
+            is_approved=True  # 管理员账户默认通过审核
         )
         admin.set_password('admin123')
         

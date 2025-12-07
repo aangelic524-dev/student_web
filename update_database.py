@@ -17,6 +17,10 @@ try:
     cursor.execute('ALTER TABLE students ADD COLUMN position VARCHAR(50)')
     print('Added position column')
     
+    # 添加class_approved列
+    cursor.execute('ALTER TABLE students ADD COLUMN class_approved BOOLEAN DEFAULT 0')
+    print('Added class_approved column')
+    
     # 提交更改
     conn.commit()
     print('Database updated successfully!')

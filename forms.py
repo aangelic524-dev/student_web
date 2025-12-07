@@ -55,6 +55,7 @@ class StudentForm(FlaskForm):
     grade_level = StringField('年级', validators=[Optional(), Length(max=50)])
     department = StringField('院系', validators=[Optional(), Length(max=100)])
     class_name = StringField('班级', validators=[Optional(), Length(max=50)])
+    class_approved = BooleanField('班级分配批准', default=False)
     major = StringField('专业', validators=[Optional(), Length(max=100)])
     position = StringField('职位', validators=[Optional(), Length(max=50)])
     phone = StringField('电话', validators=[Optional(), Length(max=20)])
@@ -146,3 +147,42 @@ class AddUserForm(FlaskForm):
         user = User.query.filter_by(email=email.data).first()
         if user is not None:
             raise ValidationError('该邮箱已被注册')
+
+class EditUserForm(FlaskForm):
+    """编辑用户表单"""
+    username = StringField('用户名', validators=[
+        DataRequired(),
+        Length(min=3, max=80, message='用户名长度必须在3-80个字符之间')
+    ])
+    email = StringField('邮箱', validators=[
+        DataRequired(),
+        Email(message='请输入有效的邮箱地址')
+    ])
+    password = PasswordField('密码', validators=[
+        Optional(),
+        Length(min=6, message='密码长度至少6位')
+    ])
+    role_id = SelectField('角色', coerce=int, validators=[DataRequired()])
+    is_active = BooleanField('启用账户', default=True)
+    is_approved = BooleanField('批准账户', default=True)
+    submit = SubmitField('保存修改')
+    
+    def __init__(self, original_username, original_email, *args, **kwargs):
+        """初始化表单，保存原始用户名和邮箱"""
+        super(EditUserForm, self).__init__(*args, **kwargs)
+        self.original_username = original_username
+        self.original_email = original_email
+    
+    def validate_username(self, username):
+        """验证用户名是否唯一"""
+        if username.data != self.original_username:
+            user = User.query.filter_by(username=username.data).first()
+            if user is not None:
+                raise ValidationError('该用户名已被使用')
+            
+    def validate_email(self, email):
+        """验证邮箱是否唯一"""
+        if email.data != self.original_email:
+            user = User.query.filter_by(email=email.data).first()
+            if user is not None:
+                raise ValidationError('该邮箱已被注册')

@@ -415,6 +415,10 @@ def dashboard_en():
 @login_required
 def add_student():
     """添加学生"""
+    # 检查权限：只有管理员可以添加学生
+    if not current_user.is_admin:
+        flash('只有管理员可以添加学生', 'danger')
+        return redirect(url_for('main.student_list'))
     form = StudentForm()
     
     if form.validate_on_submit():
@@ -484,6 +488,30 @@ def edit_student(student_id):
     
     return render_template('add_student.html', form=form, title='修改学生信息')
 
+@main_bp.route('/students/<int:student_id>/approve-class', methods=['GET'])
+@login_required
+def approve_class(student_id):
+    """批准学生的班级分配"""
+    if not current_user.is_admin:
+        flash('只有管理员可以批准班级分配', 'danger')
+        return redirect(url_for('main.student_list'))
+    
+    student = Student.query.get_or_404(student_id)
+    
+    if not student.class_name:
+        flash('该学生未分配班级', 'warning')
+        return redirect(url_for('main.student_detail', student_id=student_id))
+    
+    if student.class_approved:
+        flash('该学生的班级已批准', 'info')
+        return redirect(url_for('main.student_detail', student_id=student_id))
+    
+    student.class_approved = True
+    db.session.commit()
+    
+    flash(f'学生 {student.name} 的班级分配已批准', 'success')
+    return redirect(url_for('main.student_list'))
+
 @main_bp.route('/students')
 @login_required
 def student_list():
@@ -545,10 +573,15 @@ def student_list_en():
 def delete_student(student_id):
     """删除学生"""
     try:
-        student = Student.query.filter_by(id=student_id, user_id=current_user.id).first()
+        # 只有管理员可以删除学生
+        if not current_user.is_admin:
+            flash('只有管理员可以删除学生', 'danger')
+            return redirect(url_for('main.student_list'))
+        
+        student = Student.query.get_or_404(student_id)
         
         if not student:
-            flash('学生不存在或无权限操作', 'danger')
+            flash('学生不存在', 'danger')
             return redirect(url_for('main.student_list'))
         
         # 删除学生的所有成绩记录
@@ -2292,6 +2325,55 @@ def reject_user(user_id):
         app.logger.error(f'拒绝用户失败: {str(e)}', extra={'log_type': 'user'})
     
     return redirect(url_for('main.pending_users'))
+
+@main_bp.route('/admin/users/edit/<int:user_id>', methods=['GET', 'POST'])
+@login_required
+def edit_user(user_id):
+    """编辑用户信息"""
+    if not current_user.is_admin:
+        flash('无权编辑用户信息', 'danger')
+        return redirect(url_for('main.dashboard'))
+    
+    user = User.query.get_or_404(user_id)
+    form = EditUserForm(user.username, user.email)
+    
+    # 动态获取角色列表
+    form.role_id.choices = [(role.id, role.name) for role in Role.query.order_by(Role.name).all()]
+    
+    if form.validate_on_submit():
+        try:
+            # 更新用户信息
+            user.username = form.username.data
+            user.email = form.email.data
+            user.role_id = form.role_id.data
+            user.is_active = form.is_active.data
+            user.is_approved = form.is_approved.data
+            
+            # 如果提供了新密码，则更新密码
+            if form.password.data:
+                user.set_password(form.password.data)
+            
+            db.session.commit()
+            
+            flash(f'用户 {user.username} 的信息已更新', 'success')
+            app.logger.info(f'管理员 {current_user.username} 更新了用户 {user.username} 的信息', extra={'log_type': 'user'})
+            return redirect(url_for('main.user_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'更新用户信息失败: {str(e)}', 'danger')
+            app.logger.error(f'更新用户信息失败: {str(e)}', extra={'log_type': 'user'})
+    elif request.method == 'GET':
+        # 表单初始数据
+        form.username.data = user.username
+        form.email.data = user.email
+        form.role_id.data = user.role_id
+        form.is_active.data = user.is_active
+        form.is_approved.data = user.is_approved
+    
+    return render_template('edit_user.html',
+                         title='编辑用户信息',
+                         form=form,
+                         user=user)
 
 # 错误处理
 @app.errorhandler(404)

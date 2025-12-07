@@ -26,8 +26,12 @@ def login():
             return redirect(url_for('auth.login'))
         
         if not user.is_approved:
-            flash('账户尚未通过审核，请耐心等待或联系管理员', 'warning')
-            return redirect(url_for('auth.login'))
+            # 特殊处理：管理员角色的用户即使未审核也能登录
+            if user.role and user.role.name == 'admin':
+                flash('管理员账户自动通过审核', 'info')
+            else:
+                flash('账户尚未通过审核，请耐心等待或联系管理员', 'warning')
+                return redirect(url_for('auth.login'))
         
         login_user(user, remember=form.remember_me.data)
         user.last_login = datetime.now(timezone.utc)
