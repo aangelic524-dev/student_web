@@ -115,3 +115,34 @@ class StatisticsForm(FlaskForm):
     semester = StringField('学期', validators=[Optional()])
     academic_year = StringField('学年', validators=[Optional()])
     submit = SubmitField('统计')
+
+class AddUserForm(FlaskForm):
+    """添加用户表单（管理员使用）"""
+    username = StringField('用户名', validators=[
+        DataRequired(),
+        Length(min=3, max=80, message='用户名长度必须在3-80个字符之间')
+    ])
+    email = StringField('邮箱', validators=[
+        DataRequired(),
+        Email(message='请输入有效的邮箱地址')
+    ])
+    password = PasswordField('密码', validators=[
+        DataRequired(),
+        Length(min=6, message='密码长度至少6位')
+    ])
+    role_id = SelectField('角色', coerce=int, validators=[DataRequired()])
+    is_active = BooleanField('启用账户', default=True)
+    is_approved = BooleanField('批准账户', default=True)
+    submit = SubmitField('添加用户')
+    
+    def validate_username(self, username):
+        """验证用户名是否唯一"""
+        user = User.query.filter_by(username=username.data).first()
+        if user is not None:
+            raise ValidationError('该用户名已被使用')
+            
+    def validate_email(self, email):
+        """验证邮箱是否唯一"""
+        user = User.query.filter_by(email=email.data).first()
+        if user is not None:
+            raise ValidationError('该邮箱已被注册')

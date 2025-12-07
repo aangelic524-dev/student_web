@@ -8,17 +8,91 @@
         <i class="fas fa-file-alt"></i> 日志查看
     </h1>
     
-    <!-- 操作按钮 -->
+    <!-- 过滤和操作按钮 -->
+    <div class="mb-4 row">
+        <div class="col-md-6">
+            <div class="input-group">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">日志类型</span>
+                </div>
+                <select class="custom-select" id="logTypeFilter" onchange="filterLogs()">
+                    {% for type in log_types %}
+                    <option value="{{ type }}" {% if selected_type == type %}selected{% endif %}>
+                        {% if type == 'all' %}全部日志{% elif type == 'system' %}系统日志{% elif type == 'user' %}用户管理{% elif type == 'log' %}日志操作{% else %}{{ type }}{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-md-6 text-right">
+            <a href="{{ url_for('main.download_logs') }}" class="btn btn-primary">
+                <i class="fas fa-download"></i> 下载日志
+            </a>
+            <button onclick="copyLogs()" class="btn btn-secondary">
+                <i class="fas fa-copy"></i> 复制日志
+            </button>
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left"></i> 返回仪表板
+            </a>
+        </div>
+    </div>
+    
+    <!-- 日志类型统计 -->
     <div class="mb-4">
-        <a href="{{ url_for('main.download_logs') }}" class="btn btn-primary">
-            <i class="fas fa-download"></i> 下载日志
-        </a>
-        <button onclick="copyLogs()" class="btn btn-secondary">
-            <i class="fas fa-copy"></i> 复制日志
-        </button>
-        <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary">
-            <i class="fas fa-arrow-left"></i> 返回仪表板
-        </a>
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h5>总日志数</h5>
+                            <p class="h3 text-primary">{{ log_lines|length }}</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h5>系统日志</h5>
+                            <p class="h3 text-info">
+                                {% set count = 0 %}
+                                {% for line in log_lines %}
+                                    {% if '[Type: system,' in line %}
+                                        {% set count = count + 1 %}
+                                    {% endif %}
+                                {% endfor %}
+                                {{ count }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h5>用户管理</h5>
+                            <p class="h3 text-success">
+                                {% set count = 0 %}
+                                {% for line in log_lines %}
+                                    {% if '[Type: user,' in line %}
+                                        {% set count = count + 1 %}
+                                    {% endif %}
+                                {% endfor %}
+                                {{ count }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h5>日志操作</h5>
+                            <p class="h3 text-warning">
+                                {% set count = 0 %}
+                                {% for line in log_lines %}
+                                    {% if '[Type: log,' in line %}
+                                        {% set count = count + 1 %}
+                                    {% endif %}
+                                {% endfor %}
+                                {{ count }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
     <!-- 日志内容 -->
@@ -26,23 +100,32 @@
         <div class="card-header">
             <h5 class="card-title mb-0">
                 <i class="fas fa-list"></i> 日志记录
+                <span class="badge badge-secondary float-right">{{ log_lines|length }} 条记录</span>
             </h5>
         </div>
         <div class="card-body">
-            <pre id="log-content" class="bg-light p-3 rounded overflow-auto" style="max-height: 70vh; font-family: 'Consolas', 'Monaco', monospace; font-size: 12px;">
+            <div id="log-content" class="bg-light p-3 rounded overflow-auto" style="max-height: 60vh; font-family: 'Consolas', 'Monaco', monospace; font-size: 12px;">
 {% if log_lines %}
 {% for line in log_lines %}
-{{ line }}
+                <div class="log-line" data-type="{{ line.split(',')[0].split(': ')[1] if '[Type: ' in line else 'system' }}">
+                    {{ line }}
+                </div>
 {% endfor %}
 {% else %}
-日志内容为空
+                <div class="text-center text-muted py-4">日志内容为空</div>
 {% endif %}
-            </pre>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
+function filterLogs() {
+    const select = document.getElementById('logTypeFilter');
+    const type = select.value;
+    window.location.href = '{{ url_for('main.view_logs') }}?type=' + type;
+}
+
 function copyLogs() {
     const logContent = document.getElementById('log-content');
     const textArea = document.createElement('textarea');
@@ -54,4 +137,11 @@ function copyLogs() {
     alert('日志内容已复制到剪贴板');
 }
 </script>
+
+<style>
+.log-line {
+    padding: 2px 0;
+    border-bottom: 1px solid #eee;
+}
+</style>
 {% endblock %}

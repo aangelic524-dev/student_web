@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}管理控制台 - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 统计卡片 -->
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">用户总数</h6>
+                        <h2 class="card-text">{{ total_users }}</h2>
+                    </div>
+                    <i class="fas fa-users fa-3x opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a href="{{ url_for('main.user_list') }}" class="text-white small">
+                    查看详情
+                </a>
+                <a href="{{ url_for('main.add_user') }}" class="text-white">
+                    <i class="fas fa-plus"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">待审核用户</h6>
+                        <h2 class="card-text">{{ pending_users }}</h2>
+                    </div>
+                    <i class="fas fa-clock fa-3x opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a href="{{ url_for('main.pending_users') }}" class="text-white small">
+                    查看待审核列表
+                </a>
+                <i class="fas fa-arrow-right"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">学生总数</h6>
+                        <h2 class="card-text">{{ total_students }}</h2>
+                    </div>
+                    <i class="fas fa-user-graduate fa-3x opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a href="{{ url_for('main.student_list') }}" class="text-white small">
+                    查看详情
+                </a>
+                <i class="fas fa-arrow-right"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">成绩总数</h6>
+                        <h2 class="card-text">{{ total_grades }}</h2>
+                    </div>
+                    <i class="fas fa-chart-bar fa-3x opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a href="{{ url_for('main.statistics') }}" class="text-white small">
+                    查看统计
+                </a>
+                <i class="fas fa-arrow-right"></i>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 最近活动 -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>
+                    最近活动
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% if recent_users %}
+                        {% for user in recent_users %}
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">
+                                    <i class="fas fa-user-circle me-2"></i>
+                                    {{ user.username }}
+                                    {% if user.is_admin %}
+                                        <span class="badge bg-danger">管理员</span>
+                                    {% endif %}
+                                    {% if not user.is_approved %}
+                                        <span class="badge bg-warning">待审核</span>
+                                    {% endif %}
+                                </h6>
+                                <small>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                            </div>
+                            <p class="mb-1 small">{{ user.email }}</p>
+                            <small class="text-muted">
+                                最后登录: {% if user.last_login %}{{ user.last_login.strftime('%Y-%m-%d %H:%M') }}{% else %}从未登录{% endif %}
+                            </small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="alert alert-info text-center">暂无活动记录</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 快速操作 -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>
+                    快速操作
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <a href="{{ url_for('main.add_user') }}" class="btn btn-primary btn-lg btn-block">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            添加用户
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{{ url_for('main.pending_users') }}" class="btn btn-warning btn-lg btn-block">
+                            <i class="fas fa-check-circle me-2"></i>
+                            审核用户
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{{ url_for('main.user_list') }}" class="btn btn-secondary btn-lg btn-block">
+                            <i class="fas fa-users me-2"></i>
+                            用户管理
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{{ url_for('main.roles') }}" class="btn btn-info btn-lg btn-block">
+                            <i class="fas fa-user-cog me-2"></i>
+                            角色管理
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{{ url_for('main.view_logs') }}" class="btn btn-success btn-lg btn-block">
+                            <i class="fas fa-file-alt me-2"></i>
+                            查看日志
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{{ url_for('main.bulk_operations') }}" class="btn btn-danger btn-lg btn-block">
+                            <i class="fas fa-tasks me-2"></i>
+                            批量操作
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

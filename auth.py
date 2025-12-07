@@ -25,6 +25,10 @@ def login():
             flash('账户已被禁用，请联系管理员', 'danger')
             return redirect(url_for('auth.login'))
         
+        if not user.is_approved:
+            flash('账户尚未通过审核，请耐心等待或联系管理员', 'warning')
+            return redirect(url_for('auth.login'))
+        
         login_user(user, remember=form.remember_me.data)
         user.last_login = datetime.now(timezone.utc)
         db.session.commit()
@@ -57,18 +61,18 @@ def register():
             flash('邮箱已被注册', 'danger')
             return redirect(url_for('auth.register'))
         
-        # 创建新用户
+        # 创建新用户，默认未审核
         user = User(
             username=form.username.data,
             email=form.email.data,
-            is_admin=False
+            is_approved=False  # 默认未审核
         )
         user.set_password(form.password.data)
         
         db.session.add(user)
         db.session.commit()
         
-        flash('注册成功！请登录', 'success')
+        flash('注册成功！您的账户需要管理员审核后才能登录，请耐心等待。', 'info')
         return redirect(url_for('auth.login'))
     
     return render_template('register.html', form=form, title='注册')

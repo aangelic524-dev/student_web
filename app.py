@@ -47,7 +47,7 @@ file_handler.setLevel(logging.DEBUG)
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.DEBUG)
 
-# 设置详细的日志格式，包含用户ID、IP地址等信息
+# 设置详细的日志格式，包含用户ID、IP地址和日志类型等信息
 class DetailedFormatter(logging.Formatter):
     def format(self, record):
         # 添加用户信息（如果有）
@@ -60,9 +60,14 @@ class DetailedFormatter(logging.Formatter):
             record.ip = record.ip
         else:
             record.ip = 'unknown'
+        # 添加日志类型（如果有）
+        if hasattr(record, 'log_type'):
+            record.log_type = record.log_type
+        else:
+            record.log_type = 'system'
         return super().format(record)
 
-log_formatter = DetailedFormatter('%(asctime)s - %(name)s - %(levelname)s - [User: %(user_id)s, IP: %(ip)s] - %(message)s')
+log_formatter = DetailedFormatter('%(asctime)s - %(name)s - %(levelname)s - [Type: %(log_type)s, User: %(user_id)s, IP: %(ip)s] - %(message)s')
 file_handler.setFormatter(log_formatter)
 console_handler.setFormatter(log_formatter)
 
@@ -80,7 +85,7 @@ app.logger.addHandler(console_handler)
 app.logger.setLevel(logging.INFO)
 
 # 记录应用启动信息
-app.logger.info('Flask应用启动')
+app.logger.info('Flask应用启动', extra={'log_type': 'system'})
 
 # 新增：权限检查装饰器
 def permission_required(permission_name):
@@ -220,7 +225,7 @@ def switch_language():
                 new_url = current_url + '_en'
     
     # 记录语言切换操作
-    app.logger.info(f'用户 {current_user.username} 切换语言: {current_url} -> {new_url}')
+    app.logger.info(f'用户 {current_user.username} 切换语言: {current_url} -> {new_url}', extra={'log_type': 'system'})
     
     # 重定向到新的URL
     return redirect(new_url)
@@ -236,28 +241,49 @@ def view_logs():
     
     # 检查日志文件是否存在
     if not os.path.exists(log_file):
-        app.logger.error(f'尝试查看日志文件失败: 文件 {log_file} 不存在')
+        app.logger.error(f'尝试查看日志文件失败: 文件 {log_file} 不存在', extra={'log_type': 'log'})
         flash('日志文件不存在', 'danger')
         return redirect(url_for('main.dashboard'))
+    
+    # 获取过滤参数
+    log_type = request.args.get('type', 'all')
     
     # 读取日志文件内容
     try:
         with open(log_file, 'r', encoding='utf-8') as f:
             log_content = f.read()
         # 按行分割日志
-        log_lines = log_content.splitlines()
+        all_log_lines = log_content.splitlines()
+        
+        # 过滤日志类型
+        log_lines = []
+        for line in all_log_lines:
+            if log_type == 'all' or f'[Type: {log_type},' in line:
+                log_lines.append(line)
+        
         # 倒序排列，最新的日志显示在最前面
         log_lines.reverse()
+        
+        # 提取所有日志类型
+        log_types = set(['all'])
+        for line in all_log_lines:
+            if '[Type: ' in line:
+                start = line.find('[Type: ') + 7
+                end = line.find(',', start)
+                if end != -1:
+                    log_types.add(line[start:end])
+        log_types = sorted(log_types)
+        
     except Exception as e:
-        app.logger.error(f'读取日志文件失败: {str(e)}')
+        app.logger.error(f'读取日志文件失败: {str(e)}', extra={'log_type': 'log'})
         flash(f'读取日志文件失败: {str(e)}', 'danger')
         return redirect(url_for('main.dashboard'))
     
     # 记录日志查看操作
-    app.logger.info(f'管理员 {current_user.username} 查看了日志文件')
+    app.logger.info(f'管理员 {current_user.username} 查看了日志文件', extra={'log_type': 'log'})
     
     # 渲染日志查看页面
-    return render_template('view_logs.html', title='日志查看', log_lines=log_lines)
+    return render_template('view_logs.html', title='日志查看', log_lines=log_lines, log_types=log_types, selected_type=log_type)
 
 @main_bp.route('/download_logs')
 @permission_required('download_logs')
@@ -270,12 +296,12 @@ def download_logs():
     
     # 检查日志文件是否存在
     if not os.path.exists(log_file):
-        app.logger.error(f'尝试下载日志文件失败: 文件 {log_file} 不存在')
+        app.logger.error(f'尝试下载日志文件失败: 文件 {log_file} 不存在', extra={'log_type': 'log'})
         flash('日志文件不存在', 'danger')
         return redirect(url_for('main.dashboard'))
     
     # 记录日志下载操作
-    app.logger.info(f'管理员 {current_user.username} 下载了日志文件')
+    app.logger.info(f'管理员 {current_user.username} 下载了日志文件', extra={'log_type': 'log'})
     
     # 发送日志文件
     return send_file(log_file, as_attachment=True, download_name=f'app_logs_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
@@ -2135,6 +2161,7 @@ def admin():
     
     # 获取系统统计
     total_users = User.query.count()
+    pending_users = User.query.filter_by(is_approved=False).count()
     total_students = Student.query.count()
     total_grades = Grade.query.count()
     
@@ -2144,9 +2171,127 @@ def admin():
     return render_template('admin.html',
                          title='系统管理',
                          total_users=total_users,
+                         pending_users=pending_users,
                          total_students=total_students,
                          total_grades=total_grades,
                          recent_users=recent_users)
+
+@main_bp.route('/admin/users')
+@login_required
+def user_list():
+    """用户列表页面"""
+    if not current_user.is_admin:
+        flash('无权访问用户管理页面', 'danger')
+        return redirect(url_for('main.dashboard'))
+    
+    # 获取所有用户
+    users = User.query.order_by(User.created_at.desc()).all()
+    
+    return render_template('user_list.html',
+                         title='用户管理',
+                         users=users)
+
+@main_bp.route('/admin/users/add', methods=['GET', 'POST'])
+@login_required
+def add_user():
+    """添加用户页面"""
+    if not current_user.is_admin:
+        flash('无权添加用户', 'danger')
+        return redirect(url_for('main.dashboard'))
+    
+    form = AddUserForm()
+    
+    # 动态获取角色列表
+    form.role_id.choices = [(role.id, role.name) for role in Role.query.order_by(Role.name).all()]
+    
+    if form.validate_on_submit():
+        try:
+            # 创建新用户
+            user = User(
+                username=form.username.data,
+                email=form.email.data,
+                role_id=form.role_id.data,
+                is_active=form.is_active.data,
+                is_approved=form.is_approved.data
+            )
+            user.set_password(form.password.data)
+            
+            db.session.add(user)
+            db.session.commit()
+            
+            flash(f'用户 {form.username.data} 添加成功', 'success')
+            app.logger.info(f'管理员 {current_user.username} 添加了新用户 {form.username.data}', extra={'log_type': 'user'})
+            return redirect(url_for('main.user_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'添加用户失败: {str(e)}', 'danger')
+            app.logger.error(f'添加用户失败: {str(e)}', extra={'log_type': 'user'})
+    
+    return render_template('add_user.html',
+                         title='添加用户',
+                         form=form)
+
+@main_bp.route('/admin/users/pending')
+@login_required
+def pending_users():
+    """待审核用户列表"""
+    if not current_user.is_admin:
+        flash('无权访问待审核用户页面', 'danger')
+        return redirect(url_for('main.dashboard'))
+    
+    # 获取所有未审核用户
+    users = User.query.filter_by(is_approved=False).order_by(User.created_at.desc()).all()
+    
+    return render_template('pending_users.html',
+                         title='待审核用户',
+                         users=users)
+
+@main_bp.route('/admin/users/approve/<int:user_id>')
+@login_required
+def approve_user(user_id):
+    """审核通过用户"""
+    if not current_user.is_admin:
+        flash('无权审核用户', 'danger')
+        return redirect(url_for('main.dashboard'))
+    
+    user = User.query.get_or_404(user_id)
+    
+    try:
+        user.is_approved = True
+        db.session.commit()
+        
+        flash(f'用户 {user.username} 已审核通过', 'success')
+        app.logger.info(f'管理员 {current_user.username} 审核通过了用户 {user.username}', extra={'log_type': 'user'})
+    except Exception as e:
+        db.session.rollback()
+        flash(f'审核用户失败: {str(e)}', 'danger')
+        app.logger.error(f'审核用户失败: {str(e)}', extra={'log_type': 'user'})
+    
+    return redirect(url_for('main.pending_users'))
+
+@main_bp.route('/admin/users/reject/<int:user_id>')
+@login_required
+def reject_user(user_id):
+    """拒绝用户注册"""
+    if not current_user.is_admin:
+        flash('无权审核用户', 'danger')
+        return redirect(url_for('main.dashboard'))
+    
+    user = User.query.get_or_404(user_id)
+    
+    try:
+        # 删除未审核的用户
+        db.session.delete(user)
+        db.session.commit()
+        
+        flash(f'用户 {user.username} 的注册已拒绝', 'success')
+        app.logger.info(f'管理员 {current_user.username} 拒绝了用户 {user.username} 的注册', extra={'log_type': 'user'})
+    except Exception as e:
+        db.session.rollback()
+        flash(f'拒绝用户失败: {str(e)}', 'danger')
+        app.logger.error(f'拒绝用户失败: {str(e)}', extra={'log_type': 'user'})
+    
+    return redirect(url_for('main.pending_users'))
 
 # 错误处理
 @app.errorhandler(404)
