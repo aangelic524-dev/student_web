@@ -512,6 +512,34 @@ def approve_class(student_id):
     flash(f'学生 {student.name} 的班级分配已批准', 'success')
     return redirect(url_for('main.student_list'))
 
+@main_bp.route('/students/approve-all-classes', methods=['GET'])
+@login_required
+def approve_all_classes():
+    """一键批准所有学生的班级分配"""
+    if not current_user.is_admin:
+        flash('只有管理员可以执行批量批准操作', 'danger')
+        return redirect(url_for('main.student_list'))
+    
+    # 查询所有未批准的学生（已分配班级但未批准）
+    students_to_approve = Student.query.filter(
+        Student.user_id == current_user.id,
+        Student.class_name != None,
+        Student.class_approved == False
+    ).all()
+    
+    if not students_to_approve:
+        flash('没有需要批准的学生班级分配', 'info')
+        return redirect(url_for('main.student_list'))
+    
+    # 批量批准
+    for student in students_to_approve:
+        student.class_approved = True
+    
+    db.session.commit()
+    
+    flash(f'已成功批准 {len(students_to_approve)} 名学生的班级分配', 'success')
+    return redirect(url_for('main.student_list'))
+
 @main_bp.route('/students')
 @login_required
 def student_list():

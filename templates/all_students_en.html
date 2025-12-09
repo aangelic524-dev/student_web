@@ -31,6 +31,13 @@ function confirmStudentDelete(studentId, studentName) {
             <a href="{{ url_for('main.add_student') }}" class="btn btn-success btn-sm">
                 <i class="fas fa-plus me-1"></i>Add Student
             </a>
+            <!-- Batch Approve Button -->
+            {% if current_user.is_admin %}
+            <a href="{{ url_for('main.approve_all_classes') }}" class="btn btn-outline-primary btn-sm" 
+               onclick="return confirm('Are you sure you want to approve all students\' class assignments?')" title="Approve All">
+                <i class="fas fa-check-circle me-1"></i>Approve All
+            </a>
+            {% endif %}
         </div>
     </div>
     
