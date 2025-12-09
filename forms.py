@@ -54,7 +54,8 @@ class StudentForm(FlaskForm):
     birth_date = DateField('出生日期', format='%Y-%m-%d', validators=[Optional()])
     grade_level = StringField('年级', validators=[Optional(), Length(max=50)])
     department = StringField('院系', validators=[Optional(), Length(max=100)])
-    class_name = StringField('班级', validators=[Optional(), Length(max=50)])
+    class_name = StringField('班级名称（旧）', validators=[Optional(), Length(max=50)])
+    class_id = SelectField('班级', coerce=int, validators=[Optional()])
     class_approved = BooleanField('班级分配批准', default=False)
     major = StringField('专业', validators=[Optional(), Length(max=100)])
     position = StringField('职位', validators=[Optional(), Length(max=50)])
@@ -109,6 +110,23 @@ class QueryForm(FlaskForm):
     ], validators=[DataRequired()])
     query_text = StringField('查询内容', validators=[DataRequired()])
     submit = SubmitField('查询')
+
+class ClassForm(FlaskForm):
+    """班级表单"""
+    class_name = StringField('班级名称', validators=[
+        DataRequired(),
+        Length(min=2, max=50, message='班级名称长度必须在2-50个字符之间')
+    ])
+    department = StringField('所属院系', validators=[
+        DataRequired(),
+        Length(max=100, message='院系名称长度不能超过100个字符')
+    ])
+    grade_level = StringField('年级', validators=[
+        DataRequired(),
+        Length(max=50, message='年级名称长度不能超过50个字符')
+    ])
+    class_teacher_id = SelectField('班主任', coerce=int, validators=[Optional()])
+    submit = SubmitField('保存')
 
 class StatisticsForm(FlaskForm):
     """统计表单"""

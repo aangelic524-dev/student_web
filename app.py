@@ -11,11 +11,12 @@ from io import BytesIO
 import matplotlib.pyplot as plt
 import matplotlib
 import markupsafe
+from sqlalchemy import func  # 导入SQLAlchemy函数用于数据库查询
 matplotlib.use('Agg')  # 使用非GUI后端
 
 # 导入配置和模块
 from config import Config
-from database import db, User, Student, Course, Grade, init_db, Role, Permission
+from database import db, User, Student, Course, Grade, Class, init_db, Role, Permission
 from auth import auth_bp
 from forms import *
 
@@ -421,6 +422,9 @@ def add_student():
         return redirect(url_for('main.student_list'))
     form = StudentForm()
     
+    # 填充班级下拉菜单
+    form.class_id.choices = [(0, '请选择')] + [(c.id, c.class_name) for c in Class.query.order_by(Class.class_name).all()]
+    
     if form.validate_on_submit():
         # 检查学号是否已存在
         existing = Student.query.filter_by(student_id=form.student_id.data).first()
@@ -437,6 +441,7 @@ def add_student():
             grade_level=form.grade_level.data,
             department=form.department.data,
             class_name=form.class_name.data,
+            class_id=form.class_id.data if form.class_id.data != 0 else None,
             major=form.major.data,
             position=form.position.data,
             phone=form.phone.data,
@@ -445,6 +450,12 @@ def add_student():
             enrollment_date=form.enrollment_date.data or datetime.now(timezone.utc),
             user_id=current_user.id
         )
+        
+        # 如果选择了班级，自动更新班级名称
+        if student.class_id:
+            class_info = Class.query.get(student.class_id)
+            if class_info:
+                student.class_name = class_info.class_name
         
         db.session.add(student)
         db.session.commit()
@@ -467,6 +478,15 @@ def edit_student(student_id):
     
     form = StudentForm(obj=student)
     
+    # 填充班级下拉菜单
+    form.class_id.choices = [(0, '请选择')] + [(c.id, c.class_name) for c in Class.query.order_by(Class.class_name).all()]
+    
+    # 设置默认选择的班级
+    if student.class_id:
+        form.class_id.data = student.class_id
+    else:
+        form.class_id.data = 0
+    
     if form.validate_on_submit():
         # 检查学号是否已被其他学生使用
         existing = Student.query.filter_by(student_id=form.student_id.data).filter(Student.id != student_id).first()
@@ -476,6 +496,12 @@ def edit_student(student_id):
         
         # 更新学生信息
         form.populate_obj(student)
+        
+        # 如果选择了班级，自动更新班级名称
+        if student.class_id:
+            class_info = Class.query.get(student.class_id)
+            if class_info:
+                student.class_name = class_info.class_name
         
         # 处理入学日期
         if not student.enrollment_date:
@@ -563,10 +589,252 @@ def student_list():
     # 分页
     students = query.order_by(Student.created_at.desc()).paginate(page=page, per_page=app.config['ITEMS_PER_PAGE'], error_out=False)
     
+    # 查询所有教师和班级（仅管理员需要）
+    teachers = []
+    classes = []
+    if current_user.is_admin:
+        # 查询所有教师角色的用户
+        from database import User
+        teachers = User.query.filter_by(role_id=2).all()  # 假设教师角色ID是2
+        
+        # 查询所有班级
+        from database import Class
+        classes = Class.query.all()
+    
     return render_template('all_students.html',
                          title='学生列表',
                          students=students,
+                         search=search,
+                         teachers=teachers,
+                         classes=classes)
+
+# ==== 班级管理路由开始 ====
+@main_bp.route('/classes')
+@login_required
+def class_list():
+    """班级列表"""
+    page = request.args.get('page', 1, type=int)
+    
+    # 查询班级
+    query = Class.query
+    
+    # 搜索功能
+    search = request.args.get('search', '')
+    if search:
+        query = query.filter(
+            db.or_(
+                Class.class_name.ilike(f'%{search}%'),
+                Class.department.ilike(f'%{search}%'),
+                Class.grade_level.ilike(f'%{search}%')
+            )
+        )
+    
+    # 分页
+    classes = query.order_by(Class.created_at.desc()).paginate(page=page, per_page=app.config['ITEMS_PER_PAGE'], error_out=False)
+    
+    return render_template('classes.html',
+                         title='班级列表',
+                         classes=classes,
                          search=search)
+
+@main_bp.route('/classes/add', methods=['GET', 'POST'])
+@login_required
+def add_class():
+    """添加班级"""
+    # 检查权限：只有管理员可以添加班级
+    if not current_user.is_admin:
+        flash('只有管理员可以添加班级', 'danger')
+        return redirect(url_for('main.class_list'))
+    
+    form = ClassForm()
+    
+    # 填充班主任下拉菜单
+    from database import User
+    form.class_teacher_id.choices = [(0, '请选择')] + [(user.id, user.username) for user in User.query.filter_by(role_id=2).all()]
+    
+    if form.validate_on_submit():
+        # 检查班级名称是否已存在
+        existing = Class.query.filter_by(class_name=form.class_name.data).first()
+        if existing:
+            flash('该班级名称已存在', 'danger')
+            return redirect(url_for('main.add_class'))
+        
+        # 创建班级
+        new_class = Class(
+            class_name=form.class_name.data,
+            department=form.department.data,
+            grade_level=form.grade_level.data,
+            class_teacher_id=form.class_teacher_id.data if form.class_teacher_id.data != 0 else None
+        )
+        
+        db.session.add(new_class)
+        db.session.commit()
+        
+        flash(f'班级 {new_class.class_name} 添加成功', 'success')
+        return redirect(url_for('main.class_detail', class_id=new_class.id))
+    
+    return render_template('add_class.html', form=form, title='添加班级')
+
+@main_bp.route('/classes/<int:class_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_class(class_id):
+    """修改班级信息"""
+    # 检查权限：只有管理员可以修改班级
+    if not current_user.is_admin:
+        flash('只有管理员可以修改班级信息', 'danger')
+        return redirect(url_for('main.class_list'))
+    
+    class_ = Class.query.get_or_404(class_id)
+    form = ClassForm(obj=class_)
+    
+    # 填充班主任下拉菜单
+    from database import User
+    form.class_teacher_id.choices = [(0, '请选择')] + [(user.id, user.username) for user in User.query.filter_by(role_id=2).all()]
+    
+    if form.validate_on_submit():
+        # 检查班级名称是否已被其他班级使用
+        existing = Class.query.filter_by(class_name=form.class_name.data).filter(Class.id != class_id).first()
+        if existing:
+            flash('该班级名称已被其他班级使用', 'danger')
+            return redirect(url_for('main.edit_class', class_id=class_id))
+        
+        # 更新班级信息
+        form.populate_obj(class_)
+        if form.class_teacher_id.data == 0:
+            class_.class_teacher_id = None
+        
+        db.session.commit()
+        
+        flash(f'班级 {class_.class_name} 信息更新成功', 'success')
+        return redirect(url_for('main.class_detail', class_id=class_id))
+    
+    return render_template('add_class.html', form=form, title='修改班级信息', class_=class_)
+
+@main_bp.route('/classes/<int:class_id>')
+@login_required
+def class_detail(class_id):
+    """班级详情"""
+    class_info = Class.query.get_or_404(class_id)
+    
+    # 获取班级学生
+    page = request.args.get('page', 1, type=int)
+    students = Student.query.filter_by(class_id=class_id).paginate(page=page, per_page=app.config['ITEMS_PER_PAGE'], error_out=False)
+    
+    return render_template('class_detail.html',
+                         title=f'班级详情 - {class_info.class_name}',
+                         class_info=class_info,
+                         students=students)
+
+@main_bp.route('/classes/<int:class_id>/delete', methods=['POST'])
+@login_required
+def delete_class(class_id):
+    """删除班级"""
+    # 检查权限：只有管理员可以删除班级
+    if not current_user.is_admin:
+        flash('只有管理员可以删除班级', 'danger')
+        return redirect(url_for('main.class_list'))
+    
+    class_ = Class.query.get_or_404(class_id)
+    
+    # 检查班级是否有学生
+    if class_.students:
+        flash('该班级还有学生，无法删除', 'danger')
+        return redirect(url_for('main.class_list'))
+    
+    # 删除班级
+    db.session.delete(class_)
+    db.session.commit()
+    
+    flash(f'班级 {class_.class_name} 删除成功', 'success')
+    return redirect(url_for('main.class_list'))
+
+# ==== 班级管理路由结束 ====
+
+@main_bp.route('/assign_students', methods=['POST'])
+@login_required
+def assign_students():
+    """分配学生给教师或班级"""
+    try:
+        # 只有管理员可以分配学生
+        if not current_user.is_admin:
+            flash('只有管理员可以分配学生', 'danger')
+            return redirect(url_for('main.student_list'))
+        
+        # 获取分配类型和学生ID列表
+        assign_type = request.form.get('assign_type')
+        student_ids = request.form.getlist('student_ids')
+        
+        if not student_ids:
+            flash('请选择要分配的学生', 'danger')
+            return redirect(url_for('main.student_list'))
+        
+        # 导入所需模型
+        from database import Student
+        
+        if assign_type == 'teacher':
+            # 分配给教师的逻辑
+            target_teacher_id = request.form.get('target_teacher_id')
+            
+            if not target_teacher_id:
+                flash('请选择目标教师', 'danger')
+                return redirect(url_for('main.student_list'))
+            
+            # 验证目标教师是否存在
+            from database import User
+            target_teacher = db.session.get(User, target_teacher_id)
+            if not target_teacher:
+                flash('目标教师不存在', 'danger')
+                return redirect(url_for('main.student_list'))
+            
+            # 更新学生的用户ID
+            updated_count = Student.query.filter(Student.id.in_(student_ids)).update(
+                {'user_id': target_teacher_id},
+                synchronize_session=False
+            )
+            
+            # 提交更改
+            db.session.commit()
+            
+            flash(f'成功将 {updated_count} 名学生分配给教师 {target_teacher.username}', 'success')
+            return redirect(url_for('main.student_list'))
+            
+        elif assign_type == 'class':
+            # 分配到班级的逻辑
+            target_class_id = request.form.get('target_class_id')
+            
+            if not target_class_id:
+                flash('请选择目标班级', 'danger')
+                return redirect(url_for('main.student_list'))
+            
+            # 验证目标班级是否存在
+            from database import Class
+            target_class = db.session.get(Class, target_class_id)
+            if not target_class:
+                flash('目标班级不存在', 'danger')
+                return redirect(url_for('main.student_list'))
+            
+            # 更新学生的班级信息
+            updated_count = Student.query.filter(Student.id.in_(student_ids)).update(
+                {
+                    'class_id': target_class.id,
+                    'class_name': target_class.class_name
+                },
+                synchronize_session=False
+            )
+            
+            # 提交更改
+            db.session.commit()
+            
+            flash(f'成功将 {updated_count} 名学生分配到班级 {target_class.class_name}', 'success')
+            return redirect(url_for('main.student_list'))
+        else:
+            flash('无效的分配类型', 'danger')
+            return redirect(url_for('main.student_list'))
+            
+    except Exception as e:
+        db.session.rollback()
+        flash(f'分配学生失败：{str(e)}', 'danger')
+        return redirect(url_for('main.student_list'))
 
 @main_bp.route('/students_en')
 @login_required
@@ -858,6 +1126,37 @@ def bulk_update():
                             setattr(student, attr, value)
                             updated = True
                     
+                    # 处理班级关联
+                    class_id_value = row.get('班级ID', row.get('class_id', ''))
+                    class_name_value = row.get('班级', row.get('class_name', ''))
+                    
+                    # 尝试根据班级ID关联
+                    if not pd.isna(class_id_value):
+                        try:
+                            class_id = int(class_id_value)
+                            if class_id > 0:
+                                # 查找班级
+                                class_obj = Class.query.get(class_id)
+                                if class_obj:
+                                    student.class_id = class_id
+                                    student.class_name = class_obj.class_name  # 保持数据一致性
+                                    updated = True
+                                else:
+                                    print(f"班级ID {class_id} 不存在")
+                        except ValueError:
+                            pass
+                    # 如果没有班级ID，尝试根据班级名称关联
+                    elif not pd.isna(class_name_value) and class_name_value.strip():
+                        class_name = str(class_name_value).strip()
+                        # 查找班级
+                        class_obj = Class.query.filter(
+                            func.lower(Class.class_name) == func.lower(class_name)
+                        ).first()
+                        if class_obj:
+                            student.class_id = class_obj.id
+                            student.class_name = class_obj.class_name  # 保持数据一致性
+                            updated = True
+                    
                     if updated:
                         updated_count += 1
                     
@@ -975,6 +1274,32 @@ def bulk_import():
                             existing.email = email
                             existing.updated_at = datetime.now(timezone.utc)
                             
+                            # 处理班级关联
+                            class_id_value = row.get('班级ID', row.get('class_id', ''))
+                            class_name_value = class_name
+                            
+                            # 尝试根据班级ID关联
+                            if not pd.isna(class_id_value):
+                                try:
+                                    class_id = int(class_id_value)
+                                    if class_id > 0:
+                                        # 查找班级
+                                        class_obj = Class.query.get(class_id)
+                                        if class_obj:
+                                            existing.class_id = class_id
+                                            existing.class_name = class_obj.class_name  # 保持数据一致性
+                                except ValueError:
+                                    pass
+                            # 如果没有班级ID，尝试根据班级名称关联
+                            elif class_name_value.strip():
+                                # 查找班级
+                                class_obj = Class.query.filter(
+                                    func.lower(Class.class_name) == func.lower(class_name_value)
+                                ).first()
+                                if class_obj:
+                                    existing.class_id = class_obj.id
+                                    existing.class_name = class_obj.class_name  # 保持数据一致性
+                            
                             import_count += 1
                             continue
                         
@@ -1017,6 +1342,34 @@ def bulk_import():
                         if pd.isna(email):
                             email = ''
                         
+                        # 处理班级关联
+                        class_id_value = row.get('班级ID', row.get('class_id', ''))
+                        class_name_value = class_name
+                        class_id = None
+                        
+                        # 尝试根据班级ID关联
+                        if not pd.isna(class_id_value):
+                            try:
+                                class_id = int(class_id_value)
+                                if class_id > 0:
+                                    # 查找班级
+                                    class_obj = Class.query.get(class_id)
+                                    if class_obj:
+                                        class_name = class_obj.class_name  # 更新班级名称
+                                    else:
+                                        class_id = None  # 班级ID不存在，重置为None
+                            except ValueError:
+                                class_id = None
+                        # 如果没有班级ID，尝试根据班级名称关联
+                        elif class_name_value.strip():
+                            # 查找班级
+                            class_obj = Class.query.filter(
+                                func.lower(Class.class_name) == func.lower(class_name_value)
+                            ).first()
+                            if class_obj:
+                                class_id = class_obj.id
+                                class_name = class_obj.class_name  # 更新班级名称
+                        
                         student = Student(
                             student_id=student_id,
                             name=name,
@@ -1024,6 +1377,7 @@ def bulk_import():
                             grade_level=grade_level,
                             department=department,
                             class_name=class_name,
+                            class_id=class_id,
                             major=major,
                             position=position,
                             phone=phone,
@@ -1804,7 +2158,7 @@ def statistics():
     
     if form.validate_on_submit():
         course_id = form.course_id.data
-        course = Course.query.get(course_id)
+        course = db.session.get(Course, course_id)
         
         # 获取该课程的所有成绩
         grades = Grade.query.filter_by(course_id=course_id)\
@@ -2077,7 +2431,7 @@ def bulk_delete_courses():
         grade_deleted_count = 0
         
         for course_id in course_ids:
-            course = Course.query.get(course_id)
+            course = db.session.get(Course, course_id)
             if course:
                 # 统计要删除的成绩记录
                 grade_count = Grade.query.filter_by(course_id=course.id).count()

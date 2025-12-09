@@ -1038,7 +1038,7 @@ document.getElementById('updateFile')?.addEventListener('change', function() {
     
     if (this.files.length > 0) {
         updatePreviewBtn.disabled = false;
-        updateBtn.disabled = true;
+        updateBtn.disabled = false; // 允许用户直接进行更新，不需要先预览
     } else {
         updatePreviewBtn.disabled = true;
         updateBtn.disabled = true;

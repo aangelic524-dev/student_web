@@ -92,13 +92,14 @@ class Student(db.Model):
     __tablename__ = 'students'
     
     id = db.Column(db.Integer, primary_key=True)
-    student_id = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    student_id = db.Column(db.String(50), nullable=False, index=True)
     name = db.Column(db.String(100), nullable=False, index=True)
     gender = db.Column(db.String(10))
     birth_date = db.Column(db.Date)
     grade_level = db.Column(db.String(50))  # 年级
     department = db.Column(db.String(100))  # 院系
-    class_name = db.Column(db.String(50))
+    class_name = db.Column(db.String(50))  # 保留此字段以保持兼容性
+    class_id = db.Column(db.Integer, db.ForeignKey('classes.id'), nullable=True)  # 关联到班级表
     class_approved = db.Column(db.Boolean, default=False)  # 班级分配审核状态
     major = db.Column(db.String(100))
     position = db.Column(db.String(50))  # 职位
@@ -114,9 +115,34 @@ class Student(db.Model):
     
     # 关系
     grades = db.relationship('Grade', backref='student', lazy=True, cascade='all, delete-orphan')
+    # 与Class模型的关系
+    class_info = db.relationship('Class', backref=db.backref('students', lazy=True), foreign_keys=[class_id])
+    
+    # 组合唯一约束：每个用户下的学号唯一
+    __table_args__ = (
+        db.UniqueConstraint('student_id', 'user_id', name='_student_user_uc'),
+    )
     
     def __repr__(self):
         return f'<Student {self.student_id}: {self.name}>'
+
+class Class(db.Model):
+    """班级模型"""
+    __tablename__ = 'classes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    class_name = db.Column(db.String(50), nullable=False, index=True, unique=True)
+    department = db.Column(db.String(100), nullable=False)
+    grade_level = db.Column(db.String(50), nullable=False)
+    class_teacher_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    
+    # 关系
+    class_teacher = db.relationship('User', backref='classes', lazy=True)
+
+    def __repr__(self):
+        return f'<Class {self.class_name}>'
 
 class Course(db.Model):
     """课程模型"""
