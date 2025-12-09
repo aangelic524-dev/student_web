@@ -1,0 +1,6 @@
+student_web.zip
+logs/app.log
+instance/database.db
+./__pycache__/
+./instance/
+./logs/

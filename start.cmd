@@ -1,6 +1,6 @@
 @echo off
 
-echo ===== UPgradeing setuptools... =====
+echo ===== upgrade setuptools... =====
 python -m pip install --upgrade setuptools || echo 注意：setuptools升级失败，但将继续执行后续步骤
 
 echo.
