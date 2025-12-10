@@ -350,6 +350,18 @@
                                     <div>{{ grades|map(attribute='course.credit')|sum }}</div>
                                 </div>
                             </div>
+                            <div class="col-md-3 col-6 mb-2">
+                                <div class="border rounded p-2">
+                                    <div class="fw-bold text-purple">已修学分</div>
+                                    <div>{{ passed_credits|round(1) }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 mb-2">
+                                <div class="border rounded p-2">
+                                    <div class="fw-bold text-blue">学分绩点</div>
+                                    <div>{{ gpa|round(2) }}</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     {% else %}

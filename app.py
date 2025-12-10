@@ -176,6 +176,22 @@ def dashboard():
     total_students = Student.query.filter_by(user_id=current_user.id).count()
     total_courses = Course.query.count()
     
+    # 学分相关统计
+    # 总学分（所有课程的学分总和）
+    total_credits = db.session.query(db.func.sum(Course.credit)).scalar() or 0.0
+    
+    # 已修学分统计
+    passed_courses = db.session.query(db.func.sum(Course.credit)).join(Grade, Course.id == Grade.course_id).join(Student, Grade.student_id == Student.id).filter(Student.user_id == current_user.id, Grade.score >= 60).scalar() or 0.0
+    
+    # 平均GPA计算
+    all_grades = db.session.query(Grade.grade_point, Course.credit).join(Course, Grade.course_id == Course.id).join(Student, Grade.student_id == Student.id).filter(Student.user_id == current_user.id).all()
+    avg_gpa = 0.0
+    if all_grades:
+        total_weighted_points = sum(gp * credit for gp, credit in all_grades)
+        total_graded_credits = sum(credit for _, credit in all_grades)
+        if total_graded_credits > 0:
+            avg_gpa = total_weighted_points / total_graded_credits
+    
     # 获取最近添加的学生
     recent_students = Student.query.filter_by(user_id=current_user.id).order_by(Student.created_at.desc()).limit(5).all()
     
@@ -198,6 +214,9 @@ def dashboard():
                          title='仪表板',
                          total_students=total_students,
                          total_courses=total_courses,
+                         total_credits=total_credits,
+                         passed_courses=passed_courses,
+                         avg_gpa=avg_gpa,
                          recent_students=recent_students,
                          graded_courses=graded_courses,
                          chart_data=chart_data)
@@ -390,6 +409,22 @@ def dashboard_en():
     total_students = Student.query.filter_by(user_id=current_user.id).count()
     total_courses = Course.query.count()
     
+    # 学分相关统计
+    # 总学分（所有课程的学分总和）
+    total_credits = db.session.query(db.func.sum(Course.credit)).scalar() or 0.0
+    
+    # 已修学分统计
+    passed_courses = db.session.query(db.func.sum(Course.credit)).join(Grade, Course.id == Grade.course_id).join(Student, Grade.student_id == Student.id).filter(Student.user_id == current_user.id, Grade.score >= 60).scalar() or 0.0
+    
+    # 平均GPA计算
+    all_grades = db.session.query(Grade.grade_point, Course.credit).join(Course, Grade.course_id == Course.id).join(Student, Grade.student_id == Student.id).filter(Student.user_id == current_user.id).all()
+    avg_gpa = 0.0
+    if all_grades:
+        total_weighted_points = sum(gp * credit for gp, credit in all_grades)
+        total_graded_credits = sum(credit for _, credit in all_grades)
+        if total_graded_credits > 0:
+            avg_gpa = total_weighted_points / total_graded_credits
+    
     # 获取最近添加的学生
     recent_students = Student.query.filter_by(user_id=current_user.id).order_by(Student.created_at.desc()).limit(5).all()
     
@@ -408,6 +443,9 @@ def dashboard_en():
                          title='Dashboard',
                          total_students=total_students,
                          total_courses=total_courses,
+                         total_credits=total_credits,
+                         passed_courses=passed_courses,
+                         avg_gpa=avg_gpa,
                          recent_students=recent_students,
                          graded_courses=graded_courses,
                          chart_data=chart_data)
@@ -2015,11 +2053,33 @@ def student_detail(student_id):
     if grades:
         avg_score = sum(g.score for g in grades) / len(grades)
     
+    # 计算学分相关统计
+    total_credits = 0.0
+    passed_credits = 0.0
+    weighted_gpa = 0.0
+    gpa = 0.0
+    
+    if grades:
+        # 计算总学分和加权绩点
+        for grade in grades:
+            total_credits += grade.course.credit
+            weighted_gpa += grade.course.credit * (grade.grade_point or 0)
+            # 计算通过课程的学分（成绩>=60）
+            if grade.score >= 60:
+                passed_credits += grade.course.credit
+        
+        # 计算GPA
+        if total_credits > 0:
+            gpa = weighted_gpa / total_credits
+    
     return render_template('student_detail.html',
                          title=f'学生详情 - {student.name}',
                          student=student,
                          grades=grades,
-                         avg_score=avg_score)
+                         avg_score=avg_score,
+                         total_credits=total_credits,
+                         passed_credits=passed_credits,
+                         gpa=gpa)
 
 @main_bp.route('/students/<int:student_id>/add_grade', methods=['GET', 'POST'])
 @login_required

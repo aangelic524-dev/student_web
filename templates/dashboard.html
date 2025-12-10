@@ -71,6 +71,71 @@
 </div>
 
 <div class="row">
+    <!-- 学分相关统计卡片 -->
+    <div class="col-md-4 mb-4">
+        <div class="card text-white bg-purple">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">总学分</h6>
+                        <h2 class="card-text">{{ total_credits|round(1) }}</h2>
+                    </div>
+                    <i class="fas fa-graduation-cap fa-3x opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a href="{{ url_for('main.course_list') }}" class="text-white small">
+                    查看课程
+                </a>
+                <a href="#" class="text-white">
+                    <i class="fas fa-chart-bar"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card text-white bg-teal">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">已修学分</h6>
+                        <h2 class="card-text">{{ passed_courses|round(1) }}</h2>
+                    </div>
+                    <i class="fas fa-check-circle fa-3x opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <span class="text-white small">及格课程学分</span>
+                <a href="#" class="text-white">
+                    <i class="fas fa-chart-line"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card text-white bg-blue">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">平均GPA</h6>
+                        <h2 class="card-text">{{ avg_gpa|round(2) }}</h2>
+                    </div>
+                    <i class="fas fa-star fa-3x opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <span class="text-white small">加权平均绩点</span>
+                <a href="#" class="text-white">
+                    <i class="fas fa-chart-pie"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
     <!-- 最近学生 -->
     <div class="col-md-6 mb-4">
         <div class="card">
